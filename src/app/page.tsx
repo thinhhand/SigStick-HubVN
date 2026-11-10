@@ -34,7 +34,12 @@ import {
   getEmojiString,
   extractPackIdFromInput,
 } from "@/lib/sigstick";
-import { copyStickerToClipboard } from "@/lib/stickerActions";
+import {
+  BgMode,
+  copyStickerToClipboard,
+  getDefaultCopyBgMode,
+  setDefaultCopyBgMode,
+} from "@/lib/stickerActions";
 import PackDetailModal from "@/components/PackDetailModal";
 import StickerStudioModal from "@/components/StickerStudioModal";
 import { APP_VERSION } from "@/config/version";
@@ -88,6 +93,7 @@ export default function SigStickHomePage() {
   );
   const [savedPacks, setSavedPacks] = useState<StickerPack[]>([]);
   const [recentStickers, setRecentStickers] = useState<SavedStickerEntry[]>([]);
+  const [copyBgMode, setCopyBgMode] = useState<BgMode>("zalo-light");
 
   // Modals & Active Selections
   const [selectedPack, setSelectedPack] = useState<StickerPack | null>(null);
@@ -136,10 +142,28 @@ export default function SigStickHomePage() {
 
       const recentRaw = localStorage.getItem("sigstick_vn_recent_stickers");
       if (recentRaw) setRecentStickers(JSON.parse(recentRaw));
+
+      setCopyBgMode(getDefaultCopyBgMode());
     } catch (e) {
       console.error("Failed to read localStorage", e);
     }
   }, []);
+
+  const handleToggleCopyBgMode = () => {
+    const order: BgMode[] = ["zalo-light", "zalo-dark", "transparent"];
+    const nextIdx = (order.indexOf(copyBgMode) + 1) % order.length;
+    const next = order[nextIdx];
+    setCopyBgMode(next);
+    setDefaultCopyBgMode(next);
+    const labelMap: Record<BgMode, string> = {
+      "zalo-light": "Tiệp nền Zalo Sáng (#ebecf0) — Không bị khung trắng",
+      "zalo-dark": "Tiệp nền Zalo Tối (#22262b) — Chuẩn Dark Mode",
+      transparent: "Trong suốt — Phù hợp Messenger / Discord",
+      white: "Nền trắng",
+      dark: "Nền tối",
+    };
+    showToast(`🎨 Đã đổi chế độ Copy: ${labelMap[next]}`, "info");
+  };
 
   // Save helpers
   const persistFavorites = (next: SavedStickerEntry[]) => {
@@ -406,11 +430,18 @@ export default function SigStickHomePage() {
     const key = normalizeCdnUrl(sticker.url);
     setCopyingPreviewKey(key);
     try {
-      await copyStickerToClipboard(sticker.url, { addWhiteStroke: false });
+      await copyStickerToClipboard(sticker.url, {
+        bg: copyBgMode,
+        addWhiteStroke: false,
+      });
       recordRecentSticker(sticker, pack);
       setCopiedPreviewKey(key);
       showToast(
-        "Đã Copy Sticker (PNG)! Mở Zalo / Messenger và nhấn Ctrl+V để gửi ngay.",
+        copyBgMode === "zalo-light"
+          ? "Đã Copy Sticker (Tiệp nền Zalo Sáng, không viền trắng)! Nhấn Ctrl+V ngay."
+          : copyBgMode === "zalo-dark"
+          ? "Đã Copy Sticker (Tiệp nền Zalo Tối)! Nhấn Ctrl+V ngay."
+          : "Đã Copy Sticker (PNG)! Mở Zalo / Messenger và nhấn Ctrl+V để gửi ngay.",
         "success"
       );
       setTimeout(() => {
@@ -536,6 +567,36 @@ export default function SigStickHomePage() {
 
           {/* Right Action Buttons */}
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleToggleCopyBgMode}
+              title="Đổi chế độ nền khi Copy Sticker (Khử nền trắng Zalo)"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/70 text-emerald-200 border border-emerald-500/40 text-xs font-semibold transition cursor-pointer"
+            >
+              <span
+                className={`w-2.5 h-2.5 rounded-full border shrink-0 ${
+                  copyBgMode === "zalo-light"
+                    ? "bg-[#ebecf0] border-slate-400"
+                    : copyBgMode === "zalo-dark"
+                    ? "bg-[#22262b] border-slate-500"
+                    : "bg-transparent border-dashed border-emerald-300"
+                }`}
+              />
+              <span className="hidden md:inline">
+                {copyBgMode === "zalo-light"
+                  ? "Nền Zalo Sáng (Khử viền trắng)"
+                  : copyBgMode === "zalo-dark"
+                  ? "Nền Zalo Tối"
+                  : "Nền Trong suốt"}
+              </span>
+              <span className="md:hidden">
+                {copyBgMode === "zalo-light"
+                  ? "Zalo Sáng"
+                  : copyBgMode === "zalo-dark"
+                  ? "Zalo Tối"
+                  : "Trong suốt"}
+              </span>
+            </button>
+
             <button
               onClick={() => setShowGuideModal(true)}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700/80 text-xs font-semibold transition cursor-pointer"

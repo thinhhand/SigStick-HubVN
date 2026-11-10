@@ -25,9 +25,12 @@ import {
   normalizeCdnUrl,
 } from '@/lib/sigstick';
 import {
+  BgMode,
   copyStickerToClipboard,
   downloadPackZip,
   downloadSticker,
+  getDefaultCopyBgMode,
+  setDefaultCopyBgMode,
   shareStickerViaNativeSheet,
 } from '@/lib/stickerActions';
 
@@ -60,10 +63,16 @@ export default function PackDetailModal({
   const [quickClickMode, setQuickClickMode] = useState<'copy-png' | 'share-gif' | 'studio'>(
     'copy-png'
   );
+  const [copyBgMode, setCopyBgMode] = useState<BgMode>(() => getDefaultCopyBgMode());
   const [copyingUrl, setCopyingUrl] = useState<string | null>(null);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const [zipDownloading, setZipDownloading] = useState<'png' | 'gif' | null>(null);
   const [zipProgress, setZipProgress] = useState<{ current: number; total: number } | null>(null);
+
+  const handleChangeCopyBgMode = (mode: BgMode) => {
+    setCopyBgMode(mode);
+    setDefaultCopyBgMode(mode);
+  };
 
   const handleQuickAction = async (sticker: StickerItem) => {
     const rawUrl = normalizeCdnUrl(sticker.url);
@@ -80,11 +89,11 @@ export default function PackDetailModal({
         const res = await shareStickerViaNativeSheet(
           rawUrl,
           'gif',
-          { bg: 'transparent' },
+          { bg: copyBgMode },
           pack.title
         );
         if (res === 'unsupported') {
-          await downloadSticker(rawUrl, 'gif', { bg: 'transparent' }, `sticker-${pack.id}`);
+          await downloadSticker(rawUrl, 'gif', { bg: copyBgMode }, `sticker-${pack.id}`);
           onToast(
             'Đã chuyển sang .GIF động và tải về! Hãy kéo thả file GIF vào Zalo / Messenger.'
           );
@@ -106,9 +115,15 @@ export default function PackDetailModal({
     // Mặc định: Copy PNG vào Clipboard
     setCopyingUrl(rawUrl);
     try {
-      await copyStickerToClipboard(rawUrl, { bg: 'transparent', size: 512 });
+      await copyStickerToClipboard(rawUrl, { bg: copyBgMode, size: 512 });
       setCopiedUrl(rawUrl);
-      onToast('✅ Đã copy Sticker (PNG)! Sang Zalo hoặc Messenger nhấn Ctrl+V (hoặc Dán) ngay!');
+      onToast(
+        copyBgMode === 'zalo-light'
+          ? '✅ Đã copy Sticker (tiệp nền Zalo sáng, không viền trắng)! Nhấn Ctrl+V ngay!'
+          : copyBgMode === 'zalo-dark'
+            ? '✅ Đã copy Sticker (tiệp nền Zalo tối)! Nhấn Ctrl+V ngay!'
+            : '✅ Đã copy Sticker (PNG)! Sang Zalo hoặc Messenger nhấn Ctrl+V ngay!'
+      );
       setTimeout(() => setCopiedUrl((prev) => (prev === rawUrl ? null : prev)), 2000);
     } catch {
       onSelectStickerForStudio(sticker, pack);
@@ -276,52 +291,96 @@ export default function PackDetailModal({
           </div>
         </div>
 
-        {/* Thanh chọn chế độ Click 1-Chạm */}
-        <div className="px-4 sm:px-6 py-2.5 bg-slate-950/80 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-xs text-slate-300">
-            <Zap className="w-4 h-4 text-amber-400 shrink-0" />
-            <span className="font-medium">Khi bấm vào Sticker:</span>
+        {/* Thanh chọn chế độ Click 1-Chạm & Tiệp nền Zalo chống viền trắng */}
+        <div className="px-4 sm:px-6 py-2.5 bg-slate-950/80 border-b border-slate-800/80 flex flex-col gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs text-slate-300">
+              <Zap className="w-4 h-4 text-amber-400 shrink-0" />
+              <span className="font-medium">Khi bấm vào Sticker:</span>
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setQuickClickMode('copy-png')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  quickClickMode === 'copy-png'
+                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30'
+                    : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                }`}
+              >
+                <Copy className="w-3.5 h-3.5" />
+                Copy PNG (Dán Ctrl+V)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setQuickClickMode('share-gif')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  quickClickMode === 'share-gif'
+                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/30'
+                    : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                }`}
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                Chuyển sang .GIF Động & Gửi
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setQuickClickMode('studio')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  quickClickMode === 'studio'
+                    ? 'bg-purple-600 text-white shadow-sm shadow-purple-500/30'
+                    : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Mở Studio (Chèn chữ Meme)
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <button
-              type="button"
-              onClick={() => setQuickClickMode('copy-png')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                quickClickMode === 'copy-png'
-                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30'
-                  : 'bg-slate-800/80 text-slate-400 hover:text-white'
-              }`}
-            >
-              <Copy className="w-3.5 h-3.5" />
-              Copy PNG (Dán Ctrl+V vào Zalo/Messenger)
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setQuickClickMode('share-gif')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                quickClickMode === 'share-gif'
-                  ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/30'
-                  : 'bg-slate-800/80 text-slate-400 hover:text-white'
-              }`}
-            >
-              <Share2 className="w-3.5 h-3.5" />
-              Chuyển sang .GIF Động & Gửi
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setQuickClickMode('studio')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                quickClickMode === 'studio'
-                  ? 'bg-purple-600 text-white shadow-sm shadow-purple-500/30'
-                  : 'bg-slate-800/80 text-slate-400 hover:text-white'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              Mở Studio (Chèn chữ Meme)
-            </button>
+          {/* Tùy chọn Nền chống viền trắng Zalo */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-slate-800/60 text-xs">
+            <span className="text-slate-400 text-[11px]">
+              🎨 Nền khi Copy/Gửi <span className="text-slate-500">(Khử nền trắng Zalo)</span>:
+            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {(
+                [
+                  {
+                    id: 'zalo-light',
+                    label: 'Tiệp nền Zalo Sáng (Khuyên dùng)',
+                    dot: 'bg-[#ebecf0] border-slate-400',
+                  },
+                  {
+                    id: 'zalo-dark',
+                    label: 'Tiệp nền Zalo Tối',
+                    dot: 'bg-[#22262b] border-slate-500',
+                  },
+                  {
+                    id: 'transparent',
+                    label: 'Trong suốt (Messenger)',
+                    dot: 'bg-transparent border-dashed border-slate-400',
+                  },
+                ] as const
+              ).map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleChangeCopyBgMode(item.id)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1.5 border transition-all cursor-pointer ${
+                    copyBgMode === item.id
+                      ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300'
+                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <span className={`w-2.5 h-2.5 rounded-full border ${item.dot}`} />
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

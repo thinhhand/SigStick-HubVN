@@ -22,7 +22,9 @@ import {
   copyStickerToClipboard,
   downloadSticker,
   getConvertedStickerUrl,
+  getDefaultCopyBgMode,
   renderCustomizedPngBlob,
+  setDefaultCopyBgMode,
   shareStickerViaNativeSheet,
 } from '@/lib/stickerActions';
 
@@ -56,7 +58,7 @@ export default function StickerStudioModal({
 }: StickerStudioModalProps) {
   const animatedPack = isPackAnimated(pack);
   const [activeTab, setActiveTab] = useState<'png' | 'gif'>(animatedPack ? 'gif' : 'png');
-  const [bgMode, setBgMode] = useState<BgMode>('transparent');
+  const [bgMode, setBgMode] = useState<BgMode>(() => getDefaultCopyBgMode());
   const [addWhiteStroke, setAddWhiteStroke] = useState(false);
   const [caption, setCaption] = useState('');
   const [captionColor, setCaptionColor] = useState('#ffffff');
@@ -295,7 +297,7 @@ export default function StickerStudioModal({
                       : 'border-slate-800 text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  Nền Zalo
+                  Nền Zalo Sáng
                 </button>
                 <button
                   type="button"
@@ -306,7 +308,7 @@ export default function StickerStudioModal({
                       : 'border-slate-800 text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  Messenger Tối
+                  Zalo / Messenger Tối
                 </button>
               </div>
             </div>
@@ -315,9 +317,9 @@ export default function StickerStudioModal({
             <div
               className={`relative rounded-2xl p-6 min-h-[290px] flex flex-col items-center justify-center transition-colors overflow-hidden border ${
                 chatPreviewTheme === 'zalo'
-                  ? 'bg-[#e2e8f0] border-slate-300 text-slate-800'
+                  ? 'bg-[#ebecf0] border-slate-300 text-slate-800'
                   : chatPreviewTheme === 'messenger-dark'
-                    ? 'bg-[#0b0e14] border-slate-800 text-slate-100'
+                    ? 'bg-[#22262b] border-slate-800 text-slate-100'
                     : 'bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:16px_16px] bg-slate-900 border-slate-800'
               }`}
             >
@@ -325,8 +327,8 @@ export default function StickerStudioModal({
               <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-black/50 text-white backdrop-blur-sm">
                 <MessageCircle className="w-3 h-3 text-blue-400" />
                 {chatPreviewTheme === 'zalo'
-                  ? 'Xem trước khung chat Zalo'
-                  : 'Xem trước Messenger Dark Mode'}
+                  ? 'Xem trước khung chat Zalo Sáng (#ebecf0)'
+                  : 'Xem trước khung chat Zalo / Messenger Tối'}
               </div>
 
               {activeTab === 'gif' && !caption.trim() && !addWhiteStroke ? (
@@ -346,7 +348,7 @@ export default function StickerStudioModal({
                     draggable
                     onLoad={() => setGifLoading(false)}
                     onError={() => setGifLoading(false)}
-                    className="w-52 h-52 sm:w-60 sm:h-60 object-contain cursor-grab active:cursor-grabbing select-all drop-shadow-md"
+                    className="w-52 h-52 sm:w-60 sm:h-60 object-contain cursor-grab active:cursor-grabbing select-all rounded-xl"
                     title="Kéo thả trực tiếp ảnh GIF này vào cửa sổ Zalo PC hoặc Messenger!"
                   />
                   <span className="mt-3 text-[11px] px-3 py-1 rounded-full bg-indigo-950/80 text-indigo-200 border border-indigo-500/30">
@@ -366,7 +368,7 @@ export default function StickerStudioModal({
                       src={previewPngUrl}
                       alt={pack.title}
                       draggable
-                      className="w-52 h-52 sm:w-60 sm:h-60 object-contain cursor-grab active:cursor-grabbing drop-shadow-md"
+                      className="w-52 h-52 sm:w-60 sm:h-60 object-contain cursor-grab active:cursor-grabbing rounded-xl"
                       title="Kéo thả hoặc nhấn Copy PNG để dán vào Zalo / Messenger"
                     />
                   ) : (
@@ -384,8 +386,8 @@ export default function StickerStudioModal({
             {/* Hướng dẫn ngắn */}
             <div className="mt-4 grid grid-cols-2 gap-2.5 text-xs">
               <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-200">
-                <div className="font-semibold text-blue-300 mb-0.5">Cách 1: Copy & Dán (PC/ĐIỆN THOẠI)</div>
-                Bấm <b>Copy Sticker (PNG)</b> rồi qua khung chat Zalo, Messenger nhấn <b>Ctrl+V</b> (hoặc Dán).
+                <div className="font-semibold text-blue-300 mb-0.5">Cách 1: Copy & Dán (Khử nền trắng Zalo)</div>
+                Chọn <b>Tiệp nền Zalo Sáng</b> rồi bấm <b>Copy Sticker (PNG)</b> và nhấn <b>Ctrl+V</b> vào Zalo!
               </div>
               <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-200">
                 <div className="font-semibold text-indigo-300 mb-0.5">Cách 2: Gửi Sticker Động (.GIF)</div>
@@ -459,27 +461,37 @@ export default function StickerStudioModal({
               </div>
 
               {/* 2. Tùy chỉnh Nền & Viền Trắng chống chìm chữ trên Dark Mode */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="space-y-3 pt-1">
                 <div>
-                  <label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                    <Layers className="w-3.5 h-3.5 text-indigo-400" />
-                    Nền Sticker khi gửi
+                  <label className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                    <span className="flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5 text-indigo-400" />
+                      Nền Sticker khi gửi (Khử viền trắng Zalo)
+                    </span>
+                    <span className="text-[10px] font-normal normal-case text-emerald-400">
+                      Tự động lưu cho lần Copy sau
+                    </span>
                   </label>
-                  <div className="grid grid-cols-3 gap-1.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                     {(
                       [
-                        { id: 'transparent', label: 'Trong suốt' },
-                        { id: 'white', label: 'Nền trắng' },
-                        { id: 'dark', label: 'Nền tối' },
+                        { id: 'zalo-light', label: '✨ Tiệp nền Zalo Sáng' },
+                        { id: 'zalo-dark', label: '🌙 Tiệp nền Zalo Tối' },
+                        { id: 'transparent', label: 'Trong suốt (Messenger)' },
                       ] as const
                     ).map((item) => (
                       <button
                         key={item.id}
                         type="button"
-                        onClick={() => setBgMode(item.id)}
-                        className={`py-2 px-2 rounded-xl text-xs font-medium border transition-all ${
+                        onClick={() => {
+                          setBgMode(item.id);
+                          setDefaultCopyBgMode(item.id);
+                          if (item.id === 'zalo-dark') setChatPreviewTheme('messenger-dark');
+                          if (item.id === 'zalo-light') setChatPreviewTheme('zalo');
+                        }}
+                        className={`py-2 px-2.5 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
                           bgMode === item.id
-                            ? 'bg-blue-600/25 border-blue-500 text-blue-200'
+                            ? 'bg-emerald-600/25 border-emerald-500 text-emerald-200 shadow-xs'
                             : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
                         }`}
                       >
@@ -492,7 +504,7 @@ export default function StickerStudioModal({
                 <div>
                   <label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
                     <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    Tối ưu Dark Mode
+                    Hiệu ứng Viền Sticker (Die-Cut)
                   </label>
                   <button
                     type="button"
@@ -500,13 +512,13 @@ export default function StickerStudioModal({
                       setAddWhiteStroke(!addWhiteStroke);
                       if (!addWhiteStroke) setActiveTab('png');
                     }}
-                    className={`w-full py-2 px-3 rounded-xl text-xs font-medium border flex items-center justify-between transition-all ${
+                    className={`w-full py-2 px-3 rounded-xl text-xs font-medium border flex items-center justify-between transition-all cursor-pointer ${
                       addWhiteStroke
                         ? 'bg-amber-500/20 border-amber-500/60 text-amber-200'
                         : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-750'
                     }`}
                   >
-                    <span>Viền trắng quanh Sticker</span>
+                    <span>Viền trắng quanh nhân vật Sticker</span>
                     <span
                       className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
                         addWhiteStroke ? 'bg-amber-400 text-slate-950' : 'bg-slate-700 text-slate-400'

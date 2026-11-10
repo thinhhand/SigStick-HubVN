@@ -1,8 +1,41 @@
 import JSZip from 'jszip';
 import { StickerPack, normalizeCdnUrl } from './sigstick';
 
-export type BgMode = 'transparent' | 'white' | 'dark';
+export type BgMode = 'transparent' | 'zalo-light' | 'zalo-dark' | 'white' | 'dark';
 export type ExportFormat = 'png' | 'gif' | 'webp';
+
+export const BG_MODE_COLORS: Record<Exclude<BgMode, 'transparent'>, string> = {
+  'zalo-light': '#ebecf0',
+  'zalo-dark': '#22262b',
+  white: '#ffffff',
+  dark: '#1e293b',
+};
+
+const COPY_BG_STORAGE_KEY = 'sigstick_vn_copy_bg_mode';
+
+export function getDefaultCopyBgMode(): BgMode {
+  if (typeof window === 'undefined') return 'zalo-light';
+  try {
+    const saved = localStorage.getItem(COPY_BG_STORAGE_KEY) as BgMode | null;
+    if (
+      saved === 'transparent' ||
+      saved === 'zalo-light' ||
+      saved === 'zalo-dark' ||
+      saved === 'white' ||
+      saved === 'dark'
+    ) {
+      return saved;
+    }
+  } catch {}
+  return 'zalo-light';
+}
+
+export function setDefaultCopyBgMode(mode: BgMode): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(COPY_BG_STORAGE_KEY, mode);
+  } catch {}
+}
 
 export interface StickerCustomizeOptions {
   bg?: BgMode;
@@ -30,7 +63,7 @@ export function getConvertedStickerUrl(
 }
 
 /**
- * Vẽ sticker lên Canvas (hỗ trợ thêm viền trắng Sticker, nền bo góc và chữ Caption Meme)
+ * Vẽ sticker lên Canvas (hỗ trợ thêm viền trắng Sticker, nền trùng màu khung chat Zalo và chữ Caption Meme)
  * Trả về PNG Blob để copy vào Clipboard hoặc tải về
  */
 export async function renderCustomizedPngBlob(
@@ -67,14 +100,11 @@ export async function renderCustomizedPngBlob(
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas 2D không khả dụng');
 
-  // 1. Vẽ nền nếu chọn nền Trắng hoặc Tối (bo góc đẹp để gửi vào Zalo/Messenger)
-  if (bg === 'white' || bg === 'dark') {
+  // 1. Vẽ nền toàn khung nếu chọn nền Zalo (Light/Dark), Trắng hoặc Tối để không bị Zalo tự chèn viền trắng
+  if (bg !== 'transparent') {
     ctx.save();
-    const radius = Math.round(size * 0.08);
-    ctx.beginPath();
-    ctx.roundRect(8, 8, size - 16, size - 16, radius);
-    ctx.fillStyle = bg === 'white' ? '#ffffff' : '#1e293b';
-    ctx.fill();
+    ctx.fillStyle = BG_MODE_COLORS[bg] || '#ebecf0';
+    ctx.fillRect(0, 0, size, size);
     ctx.restore();
   }
 
@@ -181,8 +211,13 @@ export async function copyStickerToClipboard(
     throw new Error('Trình duyệt không hỗ trợ Clipboard API cho hình ảnh');
   }
 
+  const finalOptions: StickerCustomizeOptions = {
+    ...options,
+    bg: options.bg ?? getDefaultCopyBgMode(),
+  };
+
   // Sử dụng Promise trong ClipboardItem để tương thích cả Safari iOS lẫn Chrome/Edge
-  const pngPromise = renderCustomizedPngBlob(stickerUrl, options);
+  const pngPromise = renderCustomizedPngBlob(stickerUrl, finalOptions);
   const item = new ClipboardItem({
     'image/png': pngPromise,
   });

@@ -20,12 +20,29 @@ function isPngBuffer(buf: Buffer): boolean {
   );
 }
 
+type BgMode = 'transparent' | 'zalo-light' | 'zalo-dark' | 'white' | 'dark';
+
+function getBgRgb(bgMode: BgMode): { r: number; g: number; b: number } | null {
+  switch (bgMode) {
+    case 'zalo-light':
+      return { r: 235, g: 236, b: 240 }; // #ebecf0 - màu nền khung chat Zalo Light
+    case 'zalo-dark':
+      return { r: 34, g: 38, b: 43 }; // #22262b - màu nền khung chat Zalo Dark
+    case 'white':
+      return { r: 255, g: 255, b: 255 };
+    case 'dark':
+      return { r: 30, g: 41, b: 59 };
+    default:
+      return null;
+  }
+}
+
 /**
  * Chuyển đổi APNG nhiều frame sang Animated GIF bằng upng-js + gifenc
  */
 function convertApngToGif(
   buffer: Buffer,
-  bgMode: 'transparent' | 'white' | 'dark'
+  bgMode: BgMode
 ): Uint8Array | null {
   try {
     const ab = buffer.buffer.slice(
@@ -42,6 +59,7 @@ function convertApngToGif(
     const width = img.width;
     const height = img.height;
     const gif = GIFEncoder();
+    const bgRgb = getBgRgb(bgMode);
 
     for (let i = 0; i < rgbaFrames.length; i++) {
       const rawFrame = new Uint8Array(rgbaFrames[i]);
@@ -53,21 +71,16 @@ function convertApngToGif(
         const b = rawFrame[p + 2];
         const a = rawFrame[p + 3];
 
-        if (bgMode === 'white') {
+        if (bgRgb) {
           const alpha = a / 255;
-          processed[p] = Math.round(r * alpha + 255 * (1 - alpha));
-          processed[p + 1] = Math.round(g * alpha + 255 * (1 - alpha));
-          processed[p + 2] = Math.round(b * alpha + 255 * (1 - alpha));
-          processed[p + 3] = 255;
-        } else if (bgMode === 'dark') {
-          const alpha = a / 255;
-          processed[p] = Math.round(r * alpha + 30 * (1 - alpha));
-          processed[p + 1] = Math.round(g * alpha + 41 * (1 - alpha));
-          processed[p + 2] = Math.round(b * alpha + 59 * (1 - alpha));
+          processed[p] = Math.round(r * alpha + bgRgb.r * (1 - alpha));
+          processed[p + 1] = Math.round(g * alpha + bgRgb.g * (1 - alpha));
+          processed[p + 2] = Math.round(b * alpha + bgRgb.b * (1 - alpha));
           processed[p + 3] = 255;
         } else {
-          // Chế độ trong suốt (transparent): làm sạch viền bán trong suốt để GIF không bị viền đen
-          if (a < 96) {
+          // Chế độ trong suốt (transparent): làm sạch viền bán trong suốt (chống viền trắng/đen lem nhem)
+          // Đồng thời khử màu trắng trộn trong biên anti-alias (unpremultiply / de-halo)
+          if (a < 110) {
             processed[p] = 0;
             processed[p + 1] = 0;
             processed[p + 2] = 0;
@@ -81,7 +94,7 @@ function convertApngToGif(
         }
       }
 
-      const useTransparency = bgMode === 'transparent';
+      const useTransparency = !bgRgb;
       const fmt = useTransparency ? 'rgba4444' : 'rgb565';
       const palette = quantize(processed, 256, {
         format: fmt,
@@ -116,7 +129,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const rawTarget = searchParams.get('url');
   const format = (searchParams.get('format') || 'png').toLowerCase(); // png | gif | webp | raw
-  const bg = (searchParams.get('bg') || 'transparent') as 'transparent' | 'white' | 'dark';
+  const bg = (searchParams.get('bg') || 'transparent') as BgMode;
   const sizeParam = parseInt(searchParams.get('size') || '512', 10);
   const size = Math.min(Math.max(sizeParam || 512, 128), 1024);
 
@@ -184,20 +197,16 @@ export async function GET(request: NextRequest) {
 
       // Nếu là Animated WebP hoặc ảnh tĩnh, dùng sharp với { animated: true }
       const gifSize = Math.min(size, 360);
+      const bgRgb = getBgRgb(bg);
       let pipeline = sharp(buffer, { animated: true, pages: -1 }).resize(gifSize, gifSize, {
         fit: 'contain',
-        background:
-          bg === 'white'
-            ? { r: 255, g: 255, b: 255, alpha: 1 }
-            : bg === 'dark'
-              ? { r: 30, g: 41, b: 59, alpha: 1 }
-              : { r: 0, g: 0, b: 0, alpha: 0 },
+        background: bgRgb
+          ? { r: bgRgb.r, g: bgRgb.g, b: bgRgb.b, alpha: 1 }
+          : { r: 0, g: 0, b: 0, alpha: 0 },
       });
 
-      if (bg === 'white') {
-        pipeline = pipeline.flatten({ background: { r: 255, g: 255, b: 255 } });
-      } else if (bg === 'dark') {
-        pipeline = pipeline.flatten({ background: { r: 30, g: 41, b: 59 } });
+      if (bgRgb) {
+        pipeline = pipeline.flatten({ background: bgRgb });
       }
 
       const outGif = await pipeline.gif({ loop: 0 }).toBuffer();
@@ -212,20 +221,16 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. Mặc định: Chuyển đổi sang PNG chuẩn (Tương thích Clipboard Copy -> Paste vào Zalo & Messenger)
+    const bgRgb = getBgRgb(bg);
     let pngPipeline = sharp(buffer, { animated: false }).resize(size, size, {
       fit: 'contain',
-      background:
-        bg === 'white'
-          ? { r: 255, g: 255, b: 255, alpha: 1 }
-          : bg === 'dark'
-            ? { r: 30, g: 41, b: 59, alpha: 1 }
-            : { r: 0, g: 0, b: 0, alpha: 0 },
+      background: bgRgb
+        ? { r: bgRgb.r, g: bgRgb.g, b: bgRgb.b, alpha: 1 }
+        : { r: 0, g: 0, b: 0, alpha: 0 },
     });
 
-    if (bg === 'white') {
-      pngPipeline = pngPipeline.flatten({ background: { r: 255, g: 255, b: 255 } });
-    } else if (bg === 'dark') {
-      pngPipeline = pngPipeline.flatten({ background: { r: 30, g: 41, b: 59 } });
+    if (bgRgb) {
+      pngPipeline = pngPipeline.flatten({ background: bgRgb });
     }
 
     const outPng = await pngPipeline.png({ compressionLevel: 8 }).toBuffer();
