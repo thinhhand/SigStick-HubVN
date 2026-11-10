@@ -93,7 +93,7 @@ export default function SigStickHomePage() {
   );
   const [savedPacks, setSavedPacks] = useState<StickerPack[]>([]);
   const [recentStickers, setRecentStickers] = useState<SavedStickerEntry[]>([]);
-  const [copyBgMode, setCopyBgMode] = useState<BgMode>("zalo-light");
+  const [copyBgMode, setCopyBgMode] = useState<BgMode>("transparent");
 
   // Modals & Active Selections
   const [selectedPack, setSelectedPack] = useState<StickerPack | null>(null);
@@ -150,19 +150,19 @@ export default function SigStickHomePage() {
   }, []);
 
   const handleToggleCopyBgMode = () => {
-    const order: BgMode[] = ["zalo-light", "zalo-dark", "transparent"];
+    const order: BgMode[] = ["transparent", "zalo-light", "zalo-dark"];
     const nextIdx = (order.indexOf(copyBgMode) + 1) % order.length;
     const next = order[nextIdx];
     setCopyBgMode(next);
     setDefaultCopyBgMode(next);
     const labelMap: Record<BgMode, string> = {
-      "zalo-light": "Tiệp nền Zalo Sáng (#ebecf0) — Không bị khung trắng",
-      "zalo-dark": "Tiệp nền Zalo Tối (#22262b) — Chuẩn Dark Mode",
-      transparent: "Trong suốt — Phù hợp Messenger / Discord",
+      transparent: "Tự động tách nền (Trong suốt 100%, không background)",
+      "zalo-light": "Tiệp nền Zalo Sáng (#ebecf0)",
+      "zalo-dark": "Tiệp nền Zalo Tối (#22262b)",
       white: "Nền trắng",
       dark: "Nền tối",
     };
-    showToast(`🎨 Đã đổi chế độ Copy: ${labelMap[next]}`, "info");
+    showToast(`✨ Đã đổi chế độ: ${labelMap[next]}`, "info");
   };
 
   // Save helpers
@@ -437,11 +437,11 @@ export default function SigStickHomePage() {
       recordRecentSticker(sticker, pack);
       setCopiedPreviewKey(key);
       showToast(
-        copyBgMode === "zalo-light"
-          ? "Đã Copy Sticker (Tiệp nền Zalo Sáng, không viền trắng)! Nhấn Ctrl+V ngay."
-          : copyBgMode === "zalo-dark"
-          ? "Đã Copy Sticker (Tiệp nền Zalo Tối)! Nhấn Ctrl+V ngay."
-          : "Đã Copy Sticker (PNG)! Mở Zalo / Messenger và nhấn Ctrl+V để gửi ngay.",
+        copyBgMode === "transparent"
+          ? "✨ Đã tự động tách nền & Copy Sticker (không background)! Nhấn Ctrl+V ngay."
+          : copyBgMode === "zalo-light"
+          ? "Đã Copy Sticker (Tiệp nền Zalo Sáng)! Nhấn Ctrl+V ngay."
+          : "Đã Copy Sticker (Tiệp nền Zalo Tối)! Nhấn Ctrl+V ngay.",
         "success"
       );
       setTimeout(() => {
@@ -501,7 +501,7 @@ export default function SigStickHomePage() {
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 hidden sm:block">
-                Kho Sticker SigStick • Tự động đổi PNG & GIF động 1 chạm
+                Kho Sticker SigStick • Tự động tách nền & đổi PNG / GIF 1 chạm
               </p>
             </div>
           </div>
@@ -569,31 +569,31 @@ export default function SigStickHomePage() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleToggleCopyBgMode}
-              title="Đổi chế độ nền khi Copy Sticker (Khử nền trắng Zalo)"
+              title="Chế độ tách nền tự động khi Copy / Gửi Sticker"
               className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/70 text-emerald-200 border border-emerald-500/40 text-xs font-semibold transition cursor-pointer"
             >
               <span
                 className={`w-2.5 h-2.5 rounded-full border shrink-0 ${
-                  copyBgMode === "zalo-light"
+                  copyBgMode === "transparent"
+                    ? "bg-transparent border-dashed border-emerald-300"
+                    : copyBgMode === "zalo-light"
                     ? "bg-[#ebecf0] border-slate-400"
-                    : copyBgMode === "zalo-dark"
-                    ? "bg-[#22262b] border-slate-500"
-                    : "bg-transparent border-dashed border-emerald-300"
+                    : "bg-[#22262b] border-slate-500"
                 }`}
               />
               <span className="hidden md:inline">
-                {copyBgMode === "zalo-light"
-                  ? "Nền Zalo Sáng (Khử viền trắng)"
-                  : copyBgMode === "zalo-dark"
-                  ? "Nền Zalo Tối"
-                  : "Nền Trong suốt"}
+                {copyBgMode === "transparent"
+                  ? "✨ Tự tách nền (Không background)"
+                  : copyBgMode === "zalo-light"
+                  ? "Tiệp nền Zalo Sáng"
+                  : "Tiệp nền Zalo Tối"}
               </span>
               <span className="md:hidden">
-                {copyBgMode === "zalo-light"
+                {copyBgMode === "transparent"
+                  ? "✨ Tự tách nền"
+                  : copyBgMode === "zalo-light"
                   ? "Zalo Sáng"
-                  : copyBgMode === "zalo-dark"
-                  ? "Zalo Tối"
-                  : "Trong suốt"}
+                  : "Zalo Tối"}
               </span>
             </button>
 

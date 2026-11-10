@@ -118,11 +118,11 @@ export default function PackDetailModal({
       await copyStickerToClipboard(rawUrl, { bg: copyBgMode, size: 512 });
       setCopiedUrl(rawUrl);
       onToast(
-        copyBgMode === 'zalo-light'
-          ? '✅ Đã copy Sticker (tiệp nền Zalo sáng, không viền trắng)! Nhấn Ctrl+V ngay!'
-          : copyBgMode === 'zalo-dark'
-            ? '✅ Đã copy Sticker (tiệp nền Zalo tối)! Nhấn Ctrl+V ngay!'
-            : '✅ Đã copy Sticker (PNG)! Sang Zalo hoặc Messenger nhấn Ctrl+V ngay!'
+        copyBgMode === 'transparent'
+          ? '✨ Đã tự động tách nền & copy Sticker (không background)! Nhấn Ctrl+V ngay!'
+          : copyBgMode === 'zalo-light'
+            ? '✅ Đã copy Sticker (tiệp nền Zalo sáng)! Nhấn Ctrl+V ngay!'
+            : '✅ Đã copy Sticker (tiệp nền Zalo tối)! Nhấn Ctrl+V ngay!'
       );
       setTimeout(() => setCopiedUrl((prev) => (prev === rawUrl ? null : prev)), 2000);
     } catch {
@@ -291,7 +291,7 @@ export default function PackDetailModal({
           </div>
         </div>
 
-        {/* Thanh chọn chế độ Click 1-Chạm & Tiệp nền Zalo chống viền trắng */}
+        {/* Thanh chọn chế độ Click 1-Chạm & Tách nền tự động */}
         <div className="px-4 sm:px-6 py-2.5 bg-slate-950/80 border-b border-slate-800/80 flex flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-xs text-slate-300">
@@ -310,7 +310,7 @@ export default function PackDetailModal({
                 }`}
               >
                 <Copy className="w-3.5 h-3.5" />
-                Copy PNG (Dán Ctrl+V)
+                Copy PNG (Tự tách nền)
               </button>
 
               <button
@@ -341,28 +341,28 @@ export default function PackDetailModal({
             </div>
           </div>
 
-          {/* Tùy chọn Nền chống viền trắng Zalo */}
+          {/* Tùy chọn Tách nền không background */}
           <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-slate-800/60 text-xs">
             <span className="text-slate-400 text-[11px]">
-              🎨 Nền khi Copy/Gửi <span className="text-slate-500">(Khử nền trắng Zalo)</span>:
+              🪄 Xử lý nền khi gửi:
             </span>
             <div className="flex items-center gap-1.5 flex-wrap">
               {(
                 [
                   {
+                    id: 'transparent',
+                    label: '✨ Tự động tách nền (Không background)',
+                    dot: 'bg-transparent border-dashed border-emerald-400',
+                  },
+                  {
                     id: 'zalo-light',
-                    label: 'Tiệp nền Zalo Sáng (Khuyên dùng)',
+                    label: 'Tiệp nền Zalo Sáng',
                     dot: 'bg-[#ebecf0] border-slate-400',
                   },
                   {
                     id: 'zalo-dark',
                     label: 'Tiệp nền Zalo Tối',
                     dot: 'bg-[#22262b] border-slate-500',
-                  },
-                  {
-                    id: 'transparent',
-                    label: 'Trong suốt (Messenger)',
-                    dot: 'bg-transparent border-dashed border-slate-400',
                   },
                 ] as const
               ).map((item) => (

@@ -11,10 +11,10 @@ export const BG_MODE_COLORS: Record<Exclude<BgMode, 'transparent'>, string> = {
   dark: '#1e293b',
 };
 
-const COPY_BG_STORAGE_KEY = 'sigstick_vn_copy_bg_mode';
+const COPY_BG_STORAGE_KEY = 'sigstick_vn_copy_bg_v2';
 
 export function getDefaultCopyBgMode(): BgMode {
-  if (typeof window === 'undefined') return 'zalo-light';
+  if (typeof window === 'undefined') return 'transparent';
   try {
     const saved = localStorage.getItem(COPY_BG_STORAGE_KEY) as BgMode | null;
     if (
@@ -27,7 +27,7 @@ export function getDefaultCopyBgMode(): BgMode {
       return saved;
     }
   } catch {}
-  return 'zalo-light';
+  return 'transparent';
 }
 
 export function setDefaultCopyBgMode(mode: BgMode): void {

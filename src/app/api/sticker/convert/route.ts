@@ -38,11 +38,217 @@ function getBgRgb(bgMode: BgMode): { r: number; g: number; b: number } | null {
 }
 
 /**
- * Chuyển đổi APNG nhiều frame sang Animated GIF bằng upng-js + gifenc
+ * Tự động phát hiện và tách nền đặc (trắng/xám/màu đồng nhất từ 4 góc) bằng thuật toán Flood-Fill 8 hướng,
+ * kết hợp khử viền trắng răng cưa (Un-premultiply / De-halo) quanh nhân vật sticker.
+ */
+function autoRemoveBackgroundRgba(
+  data: Uint8Array | Buffer,
+  width: number,
+  height: number
+): void {
+  const samplePoints = [
+    [0, 0],
+    [width - 1, 0],
+    [0, height - 1],
+    [width - 1, height - 1],
+    [Math.floor(width / 2), 0],
+    [Math.floor(width / 2), height - 1],
+    [0, Math.floor(height / 2)],
+    [width - 1, Math.floor(height / 2)],
+  ];
+
+  // Kiểm tra các điểm sát biên xem có nền đặc (alpha > 200) không
+  const opaqueSamples: Array<[number, number, number, number, number]> = [];
+  for (const [cx, cy] of samplePoints) {
+    if (cx < 0 || cx >= width || cy < 0 || cy >= height) continue;
+    const idx = (cy * width + cx) * 4;
+    const a = data[idx + 3];
+    if (a > 200) {
+      opaqueSamples.push([cx, cy, data[idx], data[idx + 1], data[idx + 2]]);
+    }
+  }
+
+  // Nếu ít nhất 3 điểm biên có màu đồng nhất -> ảnh có nền đặc cần tách tự động
+  if (opaqueSamples.length >= 3) {
+    let bestCluster: Array<[number, number, number, number, number]> = [];
+    for (let i = 0; i < opaqueSamples.length; i++) {
+      const [, , r1, g1, b1] = opaqueSamples[i];
+      const cluster: Array<[number, number, number, number, number]> = [];
+      for (let j = 0; j < opaqueSamples.length; j++) {
+        const [, , r2, g2, b2] = opaqueSamples[j];
+        const diff = Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
+        if (diff <= 48) {
+          cluster.push(opaqueSamples[j]);
+        }
+      }
+      if (cluster.length > bestCluster.length) {
+        bestCluster = cluster;
+      }
+    }
+
+    if (bestCluster.length >= 3) {
+      let bgR = 0;
+      let bgG = 0;
+      let bgB = 0;
+      for (const [, , r, g, b] of bestCluster) {
+        bgR += r;
+        bgG += g;
+        bgB += b;
+      }
+      bgR = Math.round(bgR / bestCluster.length);
+      bgG = Math.round(bgG / bestCluster.length);
+      bgB = Math.round(bgB / bestCluster.length);
+
+      const colorDist = (r: number, g: number, b: number) =>
+        Math.sqrt((r - bgR) ** 2 + (g - bgG) ** 2 + (b - bgB) ** 2);
+
+      const tolerance = 38;
+      const softTolerance = 64;
+
+      const totalPixels = width * height;
+      const visited = new Uint8Array(totalPixels);
+      const queue = new Int32Array(totalPixels * 2);
+      let head = 0;
+      let tail = 0;
+
+      const trySeed = (x: number, y: number) => {
+        const p = y * width + x;
+        if (visited[p]) return;
+        const idx = p * 4;
+        if (data[idx + 3] === 0) {
+          visited[p] = 1;
+          queue[tail++] = x;
+          queue[tail++] = y;
+          return;
+        }
+        const d = colorDist(data[idx], data[idx + 1], data[idx + 2]);
+        if (d <= tolerance) {
+          visited[p] = 1;
+          queue[tail++] = x;
+          queue[tail++] = y;
+        }
+      };
+
+      for (let x = 0; x < width; x++) {
+        trySeed(x, 0);
+        trySeed(x, height - 1);
+      }
+      for (let y = 0; y < height; y++) {
+        trySeed(0, y);
+        trySeed(width - 1, y);
+      }
+
+      const dx = [1, -1, 0, 0, 1, -1, 1, -1];
+      const dy = [0, 0, 1, -1, 1, 1, -1, -1];
+
+      while (head < tail) {
+        const x = queue[head++];
+        const y = queue[head++];
+        const p = y * width + x;
+        const idx = p * 4;
+
+        data[idx] = 0;
+        data[idx + 1] = 0;
+        data[idx + 2] = 0;
+        data[idx + 3] = 0;
+
+        for (let dir = 0; dir < 8; dir++) {
+          const nx = x + dx[dir];
+          const ny = y + dy[dir];
+          if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+          const np = ny * width + nx;
+          if (visited[np]) continue;
+          const nidx = np * 4;
+          if (data[nidx + 3] === 0) {
+            visited[np] = 1;
+            queue[tail++] = nx;
+            queue[tail++] = ny;
+            continue;
+          }
+          const d = colorDist(data[nidx], data[nidx + 1], data[nidx + 2]);
+          if (d <= tolerance) {
+            visited[np] = 1;
+            queue[tail++] = nx;
+            queue[tail++] = ny;
+          } else if (d <= softTolerance) {
+            // Làm mượt biên chống răng cưa (Feathering & De-contamination)
+            visited[np] = 2;
+            const factor = (d - tolerance) / (softTolerance - tolerance);
+            const newAlpha = Math.round(data[nidx + 3] * factor);
+            if (newAlpha < 24) {
+              data[nidx] = 0;
+              data[nidx + 1] = 0;
+              data[nidx + 2] = 0;
+              data[nidx + 3] = 0;
+            } else {
+              // Khử màu nền bị pha vào pixel biên
+              const inv = 1 - factor;
+              data[nidx] = Math.max(
+                0,
+                Math.min(255, Math.round((data[nidx] - bgR * inv) / factor))
+              );
+              data[nidx + 1] = Math.max(
+                0,
+                Math.min(255, Math.round((data[nidx + 1] - bgG * inv) / factor))
+              );
+              data[nidx + 2] = Math.max(
+                0,
+                Math.min(255, Math.round((data[nidx + 2] - bgB * inv) / factor))
+              );
+              data[nidx + 3] = newAlpha;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Bước 2: Khử viền sáng/trắng (De-halo / Un-premultiply white matte) trên toàn bộ các pixel bán trong suốt ở rìa sticker
+  const total = width * height;
+  for (let i = 0; i < total; i++) {
+    const idx = i * 4;
+    const a = data[idx + 3];
+    if (a === 0) {
+      data[idx] = 0;
+      data[idx + 1] = 0;
+      data[idx + 2] = 0;
+    } else if (a < 242) {
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      // Nếu là bóng mờ trắng ở rìa ngoài (alpha thấp và màu rất sáng) -> xóa hẳn để không bị nổi viền trắng
+      if (a < 95 && r > 220 && g > 220 && b > 220) {
+        data[idx] = 0;
+        data[idx + 1] = 0;
+        data[idx + 2] = 0;
+        data[idx + 3] = 0;
+      } else {
+        const alpha = a / 255;
+        // Tách bỏ lượng màu trắng (255,255,255) bị pha sẵn vào biên khi thiết kế trên nền trắng
+        data[idx] = Math.max(
+          0,
+          Math.min(255, Math.round((r - 255 * (1 - alpha)) / alpha))
+        );
+        data[idx + 1] = Math.max(
+          0,
+          Math.min(255, Math.round((g - 255 * (1 - alpha)) / alpha))
+        );
+        data[idx + 2] = Math.max(
+          0,
+          Math.min(255, Math.round((b - 255 * (1 - alpha)) / alpha))
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Chuyển đổi APNG nhiều frame sang Animated GIF bằng upng-js + gifenc (hỗ trợ tự tách nền)
  */
 function convertApngToGif(
   buffer: Buffer,
-  bgMode: BgMode
+  bgMode: BgMode,
+  removeBg = true
 ): Uint8Array | null {
   try {
     const ab = buffer.buffer.slice(
@@ -62,7 +268,11 @@ function convertApngToGif(
     const bgRgb = getBgRgb(bgMode);
 
     for (let i = 0; i < rgbaFrames.length; i++) {
-      const rawFrame = new Uint8Array(rgbaFrames[i]);
+      const rawFrame = new Uint8Array(rgbaFrames[i].slice(0));
+      if (removeBg) {
+        autoRemoveBackgroundRgba(rawFrame, width, height);
+      }
+
       const processed = new Uint8Array(rawFrame.length);
 
       for (let p = 0; p < rawFrame.length; p += 4) {
@@ -78,9 +288,8 @@ function convertApngToGif(
           processed[p + 2] = Math.round(b * alpha + bgRgb.b * (1 - alpha));
           processed[p + 3] = 255;
         } else {
-          // Chế độ trong suốt (transparent): làm sạch viền bán trong suốt (chống viền trắng/đen lem nhem)
-          // Đồng thời khử màu trắng trộn trong biên anti-alias (unpremultiply / de-halo)
-          if (a < 110) {
+          // Chế độ trong suốt (transparent): GIF chỉ hỗ trợ 1-bit alpha (0 hoặc 255)
+          if (a < 120) {
             processed[p] = 0;
             processed[p + 1] = 0;
             processed[p + 2] = 0;
@@ -130,6 +339,7 @@ export async function GET(request: NextRequest) {
   const rawTarget = searchParams.get('url');
   const format = (searchParams.get('format') || 'png').toLowerCase(); // png | gif | webp | raw
   const bg = (searchParams.get('bg') || 'transparent') as BgMode;
+  const removeBg = searchParams.get('removeBg') !== '0';
   const sizeParam = parseInt(searchParams.get('size') || '512', 10);
   const size = Math.min(Math.max(sizeParam || 512, 128), 1024);
 
@@ -182,7 +392,7 @@ export async function GET(request: NextRequest) {
     if (format === 'gif') {
       // Nếu file gốc là PNG (có thể là APNG động trên SigStick), ưu tiên giải mã APNG
       if (isPngBuffer(buffer)) {
-        const apngGifBytes = convertApngToGif(buffer, bg);
+        const apngGifBytes = convertApngToGif(buffer, bg, removeBg);
         if (apngGifBytes) {
           return new NextResponse(new Uint8Array(apngGifBytes), {
             headers: {
@@ -195,9 +405,48 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Nếu là Animated WebP hoặc ảnh tĩnh, dùng sharp với { animated: true }
+      // Kiểm tra xem WebP có nhiều frame hay ảnh tĩnh
+      const meta = await sharp(buffer, { animated: true }).metadata();
+      const isAnimatedWebp = (meta.pages ?? 1) > 1;
       const gifSize = Math.min(size, 360);
       const bgRgb = getBgRgb(bg);
+
+      if (!isAnimatedWebp) {
+        // Ảnh tĩnh chuyển sang GIF -> chạy qua bộ tự động tách nền & khử viền trắng
+        const { data: rawData, info } = await sharp(buffer, { animated: false })
+          .ensureAlpha()
+          .raw()
+          .toBuffer({ resolveWithObject: true });
+
+        if (removeBg) {
+          autoRemoveBackgroundRgba(rawData, info.width, info.height);
+        }
+
+        let singleGifPipeline = sharp(rawData, {
+          raw: { width: info.width, height: info.height, channels: 4 },
+        }).resize(gifSize, gifSize, {
+          fit: 'contain',
+          background: bgRgb
+            ? { r: bgRgb.r, g: bgRgb.g, b: bgRgb.b, alpha: 1 }
+            : { r: 0, g: 0, b: 0, alpha: 0 },
+        });
+
+        if (bgRgb) {
+          singleGifPipeline = singleGifPipeline.flatten({ background: bgRgb });
+        }
+
+        const outSingleGif = await singleGifPipeline.gif().toBuffer();
+        return new NextResponse(new Uint8Array(outSingleGif), {
+          headers: {
+            'Content-Type': 'image/gif',
+            'Content-Disposition': 'inline; filename="sticker.gif"',
+            'Cache-Control': 'public, max-age=86400',
+            'Access-Control-Allow-Origin': '*',
+          },
+        });
+      }
+
+      // Nếu là Animated WebP nhiều frame
       let pipeline = sharp(buffer, { animated: true, pages: -1 }).resize(gifSize, gifSize, {
         fit: 'contain',
         background: bgRgb
@@ -220,9 +469,24 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 3. Mặc định: Chuyển đổi sang PNG chuẩn (Tương thích Clipboard Copy -> Paste vào Zalo & Messenger)
+    // 3. Mặc định: Chuyển đổi sang PNG chuẩn đã tự động tách nền & khử răng cưa trắng
+    const { data: rawPixels, info } = await sharp(buffer, { animated: false })
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+
+    if (removeBg) {
+      autoRemoveBackgroundRgba(rawPixels, info.width, info.height);
+    }
+
     const bgRgb = getBgRgb(bg);
-    let pngPipeline = sharp(buffer, { animated: false }).resize(size, size, {
+    let pngPipeline = sharp(rawPixels, {
+      raw: {
+        width: info.width,
+        height: info.height,
+        channels: 4,
+      },
+    }).resize(size, size, {
       fit: 'contain',
       background: bgRgb
         ? { r: bgRgb.r, g: bgRgb.g, b: bgRgb.b, alpha: 1 }

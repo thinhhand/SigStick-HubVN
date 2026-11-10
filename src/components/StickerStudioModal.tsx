@@ -460,24 +460,24 @@ export default function StickerStudioModal({
                 </div>
               </div>
 
-              {/* 2. Tùy chỉnh Nền & Viền Trắng chống chìm chữ trên Dark Mode */}
+              {/* 2. Tùy chỉnh Tách nền tự động & Viền Trắng */}
               <div className="space-y-3 pt-1">
                 <div>
                   <label className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
                     <span className="flex items-center gap-1.5">
                       <Layers className="w-3.5 h-3.5 text-indigo-400" />
-                      Nền Sticker khi gửi (Khử viền trắng Zalo)
+                      Chế độ Tách nền Sticker
                     </span>
                     <span className="text-[10px] font-normal normal-case text-emerald-400">
                       Tự động lưu cho lần Copy sau
                     </span>
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
                     {(
                       [
-                        { id: 'zalo-light', label: '✨ Tiệp nền Zalo Sáng' },
+                        { id: 'transparent', label: '✨ Tự tách nền (Không BG)' },
+                        { id: 'zalo-light', label: 'Tiệp nền Zalo Sáng' },
                         { id: 'zalo-dark', label: '🌙 Tiệp nền Zalo Tối' },
-                        { id: 'transparent', label: 'Trong suốt (Messenger)' },
                       ] as const
                     ).map((item) => (
                       <button
