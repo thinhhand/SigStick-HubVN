@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { APP_VERSION } from "@/config/version";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,6 +10,9 @@ export const metadata: Metadata = {
   icons: {
     icon: "/icon.svg",
     apple: "/icon.svg",
+  },
+  other: {
+    "app-version": APP_VERSION,
   },
 };
 

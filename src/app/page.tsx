@@ -37,6 +37,7 @@ import {
 import { copyStickerToClipboard } from "@/lib/stickerActions";
 import PackDetailModal from "@/components/PackDetailModal";
 import StickerStudioModal from "@/components/StickerStudioModal";
+import { APP_VERSION } from "@/config/version";
 
 export interface SavedStickerEntry {
   key: string; // normalized sticker URL
@@ -463,6 +464,9 @@ export default function SigStickHomePage() {
                 </span>
                 <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                   Zalo & Messenger
+                </span>
+                <span className="text-[10px] font-semibold font-mono px-1.5 py-0.5 rounded-md bg-slate-800/80 text-slate-400 border border-slate-700/60 shadow-xs">
+                  {APP_VERSION}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 hidden sm:block">
@@ -1325,6 +1329,23 @@ export default function SigStickHomePage() {
         )}
       </main>
 
+      {/* Footer */}
+      <footer className="relative z-10 border-t border-slate-800/80 mt-12 py-8 px-4 sm:px-6 text-xs text-slate-400">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
+            <span className="font-bold text-slate-200 tracking-tight">SigStick Hub VN</span>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-semibold">
+              {APP_VERSION}
+            </span>
+            <span className="text-slate-600 hidden sm:inline">•</span>
+            <span className="text-slate-400">Kho Sticker đa nền tảng tối ưu hoá cho Zalo & Messenger</span>
+          </div>
+          <p className="text-slate-500 text-[11px]">
+            Tự động giải mã & chuyển đổi PNG trong suốt & GIF động 1 chạm
+          </p>
+        </div>
+      </footer>
+
       {/* Pack Detail Modal */}
       {selectedPack && (
         <PackDetailModal
@@ -1457,6 +1478,13 @@ export default function SigStickHomePage() {
                   <strong>GIF lặp vô hạn</strong> tương thích 100% với Zalo &
                   Messenger!
                 </p>
+              </div>
+
+              <div className="pt-2 flex items-center justify-between text-xs text-slate-500 border-t border-slate-800">
+                <span>SigStick Hub VN</span>
+                <span className="font-mono bg-slate-800 px-2 py-0.5 rounded text-indigo-300 border border-slate-700/60 font-semibold text-[11px]">
+                  {APP_VERSION}
+                </span>
               </div>
             </div>
           </div>
