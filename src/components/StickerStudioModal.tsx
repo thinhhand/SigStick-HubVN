@@ -18,7 +18,7 @@ import {
   Maximize2,
   Send,
 } from 'lucide-react';
-import { StickerItem, StickerPack, normalizeCdnUrl, isPackAnimated } from '@/lib/sigstick';
+import { StickerItem, StickerPack, normalizeCdnUrl } from '@/lib/sigstick';
 import {
   BgMode,
   StickerSizePreset,
@@ -63,19 +63,18 @@ export default function StickerStudioModal({
   onCopied,
   onClose,
 }: StickerStudioModalProps) {
-  const animatedPack = isPackAnimated(pack);
-  const [activeTab, setActiveTab] = useState<'png' | 'gif'>(animatedPack ? 'gif' : 'png');
+  const [activeTab, setActiveTab] = useState<'png' | 'gif'>('gif');
   const [bgMode, setBgMode] = useState<BgMode>(() => getDefaultCopyBgMode());
   const [stickerSize, setStickerSize] = useState<StickerSizePreset>(() =>
     getDefaultStickerSize()
   );
-  const [addWhiteStroke, setAddWhiteStroke] = useState(true);
+  const [addWhiteStroke, setAddWhiteStroke] = useState(false);
   const [caption, setCaption] = useState('');
   const [captionColor, setCaptionColor] = useState('#ffffff');
   const [captionPosition] = useState<'bottom' | 'top'>('bottom');
   const [chatPreviewTheme, setChatPreviewTheme] = useState<
-    'zalo-mobile' | 'zalo-pc' | 'messenger-dark' | 'checker'
-  >('zalo-mobile');
+    'checker' | 'zalo-mobile' | 'messenger-dark'
+  >('checker');
 
   const [previewPngUrl, setPreviewPngUrl] = useState<string>('');
   const [isRenderingPreview, setIsRenderingPreview] = useState(false);
@@ -164,17 +163,17 @@ export default function StickerStudioModal({
       );
       if (result === 'shared') {
         onCopied(
-          `Đã mở Chia sẻ Zalo (${preferGif ? 'GIF động' : 'PNG'} • ${stickerSize}px • Có viền • Không nền đen/trắng)!`
+          `Đã mở Chia sẻ (${preferGif ? 'GIF động nền trong suốt' : 'PNG'} • ${stickerSize}px) sang Zalo / Messenger!`
         );
       } else if (result === 'copied') {
         setCopiedDone(true);
         onCopied(
-          `Đã Copy Sticker chuẩn Zalo (${stickerSize}px + Viền trắng)! Mở Zalo và Dán ngay.`
+          `Đã Copy Sticker (${stickerSize}px)! Mở Zalo / Messenger và Dán ngay.`
         );
         setTimeout(() => setCopiedDone(false), 2500);
       } else {
         onCopied(
-          `Đã tải file Sticker ${preferGif ? '.GIF động' : '.PNG'} chuẩn Zalo (${stickerSize}px)!`
+          `Đã tải file ${preferGif ? '.GIF động nền trong suốt' : '.PNG'} (${stickerSize}px)! Gửi qua Zalo / Messenger sẽ tự động chạy.`
         );
       }
     } catch (err: any) {
@@ -199,7 +198,7 @@ export default function StickerStudioModal({
       });
       setCopiedDone(true);
       onCopied(
-        `Đã Copy Sticker (${stickerSize}px • Có viền • Không nền đen/trắng)! Mở Zalo và Dán ngay.`
+        `Đã Copy Sticker PNG (${stickerSize}px)! Mở Zalo / Messenger và Dán ngay.`
       );
       setTimeout(() => setCopiedDone(false), 2500);
     } catch (err: any) {
@@ -234,10 +233,10 @@ export default function StickerStudioModal({
             rawStickerUrl,
             'gif',
             { bg: bgMode, size: stickerSize, addWhiteStroke },
-            `${pack.id}-sticker-zalo`
+            `Messenger_creation_${pack.id}`
           );
           onCopied(
-            `Đã tải file Sticker Động .GIF chuẩn Zalo (${stickerSize}px)! Bạn có thể gửi vào Zalo ngay.`
+            `Đã tải file .GIF động nền trong suốt (${stickerSize}px)! Gửi vào Zalo / Messenger sẽ tự chuyển động.`
           );
         } else {
           await handleCopyPng();
@@ -268,7 +267,7 @@ export default function StickerStudioModal({
           addWhiteStroke,
           size: stickerSize,
         },
-        `sigstick-zalo-${pack.id}`
+        `Messenger_creation_${pack.id}`
       );
       onCopied(
         `Đã tải xuống sticker định dạng .${format.toUpperCase()} (${stickerSize}px)!`
@@ -280,7 +279,6 @@ export default function StickerStudioModal({
     }
   };
 
-  // Visual preview size in simulated chat box
   const previewDimensionClass =
     stickerSize === 320
       ? 'w-32 h-32 sm:w-36 sm:h-36'
@@ -310,7 +308,7 @@ export default function StickerStudioModal({
             </div>
             <div className="min-w-0">
               <h3 className="font-bold text-sm sm:text-base text-slate-800 truncate">
-                Sticker Studio • Chuẩn Zalo Ultra HD
+                Sticker Studio • GIF Chuyển động & Nền trong suốt
               </h3>
               <p className="text-[11px] text-slate-500 truncate">
                 Bộ: <span className="text-slate-700 font-medium">{pack.title}</span>
@@ -358,7 +356,7 @@ export default function StickerStudioModal({
                   }`}
                 >
                   <Film className="w-3.5 h-3.5" />
-                  GIF Động HD
+                  GIF Động Trong suốt
                 </button>
                 <button
                   type="button"
@@ -378,6 +376,17 @@ export default function StickerStudioModal({
               <div className="flex items-center gap-1 text-[11px]">
                 <button
                   type="button"
+                  onClick={() => setChatPreviewTheme('checker')}
+                  className={`px-2 py-1 rounded-lg border transition-all cursor-pointer ${
+                    chatPreviewTheme === 'checker'
+                      ? 'bg-teal-50 border-teal-300 text-teal-700 font-semibold'
+                      : 'bg-white border-slate-200 text-slate-500'
+                  }`}
+                >
+                  Trong suốt
+                </button>
+                <button
+                  type="button"
                   onClick={() => setChatPreviewTheme('zalo-mobile')}
                   className={`px-2 py-1 rounded-lg border transition-all cursor-pointer ${
                     chatPreviewTheme === 'zalo-mobile'
@@ -385,18 +394,7 @@ export default function StickerStudioModal({
                       : 'bg-white border-slate-200 text-slate-500'
                   }`}
                 >
-                  Zalo ĐT
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setChatPreviewTheme('zalo-pc')}
-                  className={`px-2 py-1 rounded-lg border transition-all cursor-pointer ${
-                    chatPreviewTheme === 'zalo-pc'
-                      ? 'bg-sky-50 border-sky-300 text-sky-700 font-semibold'
-                      : 'bg-white border-slate-200 text-slate-500'
-                  }`}
-                >
-                  Zalo PC
+                  Zalo Sáng
                 </button>
                 <button
                   type="button"
@@ -417,21 +415,19 @@ export default function StickerStudioModal({
               className={`relative rounded-2xl p-4 min-h-[195px] sm:min-h-[245px] flex flex-col items-center justify-center transition-colors overflow-hidden border ${
                 chatPreviewTheme === 'zalo-mobile'
                   ? 'bg-[#e2e9f1] border-sky-200 text-slate-800'
-                  : chatPreviewTheme === 'zalo-pc'
-                    ? 'bg-[#ebecf0] border-slate-300 text-slate-800'
-                    : chatPreviewTheme === 'messenger-dark'
-                      ? 'bg-[#22262b] border-slate-700 text-slate-100'
-                      : 'bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:14px_14px] bg-white border-slate-200'
+                  : chatPreviewTheme === 'messenger-dark'
+                    ? 'bg-[#22262b] border-slate-700 text-slate-100'
+                    : 'bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:14px_14px] bg-white border-slate-200'
               }`}
             >
               <div className="absolute top-2.5 left-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-900/65 text-white backdrop-blur-xs">
                 <MessageCircle className="w-3 h-3 text-sky-300" />
                 <span>
-                  {chatPreviewTheme === 'zalo-mobile'
-                    ? `Khung chat Zalo ĐT (#e2e9f1) • ${stickerSize}px`
-                    : chatPreviewTheme === 'zalo-pc'
-                      ? `Khung chat Zalo PC (#ebecf0) • ${stickerSize}px`
-                      : `Khung chat Zalo Tối (#22262b) • ${stickerSize}px`}
+                  {chatPreviewTheme === 'checker'
+                    ? `Nền trong suốt 100% • ${stickerSize}px`
+                    : chatPreviewTheme === 'zalo-mobile'
+                      ? `Khung chat Zalo (#e2e9f1) • ${stickerSize}px`
+                      : `Khung chat Tối (#22262b) • ${stickerSize}px`}
                 </span>
               </div>
 
@@ -441,7 +437,7 @@ export default function StickerStudioModal({
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/60 rounded-xl backdrop-blur-[2px]">
                       <Loader2 className="w-6 h-6 animate-spin text-[#0068ff] mb-1" />
                       <span className="text-[10px] font-semibold text-slate-700 bg-white/90 px-2 py-0.5 rounded shadow-2xs">
-                        Đang tạo GIF HD chuẩn Zalo...
+                        Đang tạo GIF trong suốt...
                       </span>
                     </div>
                   )}
@@ -453,7 +449,7 @@ export default function StickerStudioModal({
                     onLoad={() => setGifLoading(false)}
                     onError={() => setGifLoading(false)}
                     className={`${previewDimensionClass} object-contain cursor-grab active:cursor-grabbing select-all rounded-xl transition-all duration-200`}
-                    title="Kéo thả trực tiếp ảnh GIF này vào cửa sổ Zalo PC hoặc bấm Chia sẻ qua Zalo!"
+                    title="Kéo thả trực tiếp ảnh GIF trong suốt này vào cửa sổ Zalo / Messenger!"
                   />
                 </div>
               ) : (
@@ -521,24 +517,24 @@ export default function StickerStudioModal({
                 </div>
               </div>
 
-              {/* 2. Background Removal & Anti-Black/White Zalo Mode */}
+              {/* 2. Background Mode (Default: Transparent like Messenger_creation.gif) */}
               <div>
                 <label className="flex items-center justify-between text-xs font-semibold text-slate-600 mb-1.5">
                   <span className="flex items-center gap-1.5">
                     <Layers className="w-3.5 h-3.5 text-teal-600" />
-                    Nền chống đen / trắng khi gửi Zalo
+                    Chế độ nền khi xuất GIF / PNG
                   </span>
                   <span className="text-[10px] font-medium text-teal-600">
-                    Tự tách nền gốc
+                    Mặc định: Nền trong suốt
                   </span>
                 </label>
                 <div className="grid grid-cols-4 gap-1.5">
                   {(
                     [
+                      { id: 'transparent', label: 'Trong suốt' },
                       { id: 'zalo-mobile', label: 'Zalo ĐT' },
                       { id: 'zalo-light', label: 'Zalo PC' },
                       { id: 'zalo-dark', label: 'Zalo Tối' },
-                      { id: 'transparent', label: 'Trong suốt' },
                     ] as const
                   ).map((item) => (
                     <button
@@ -547,12 +543,12 @@ export default function StickerStudioModal({
                       onClick={() => {
                         setBgMode(item.id);
                         setDefaultCopyBgMode(item.id);
-                        if (item.id === 'zalo-mobile')
+                        if (item.id === 'transparent')
+                          setChatPreviewTheme('checker');
+                        if (item.id === 'zalo-mobile' || item.id === 'zalo-light')
                           setChatPreviewTheme('zalo-mobile');
-                        if (item.id === 'zalo-light') setChatPreviewTheme('zalo-pc');
                         if (item.id === 'zalo-dark')
                           setChatPreviewTheme('messenger-dark');
-                        if (item.id === 'transparent') setChatPreviewTheme('checker');
                       }}
                       className={`py-2 px-1.5 rounded-xl text-[11px] font-semibold border transition-all cursor-pointer truncate ${
                         bgMode === item.id
@@ -566,7 +562,7 @@ export default function StickerStudioModal({
                 </div>
               </div>
 
-              {/* 3. White Die-Cut Stroke Toggle (Enabled by default for both GIF & PNG!) */}
+              {/* 3. Optional White Die-Cut Stroke Toggle */}
               <button
                 type="button"
                 onClick={() => setAddWhiteStroke(!addWhiteStroke)}
@@ -578,7 +574,7 @@ export default function StickerStudioModal({
               >
                 <span className="flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  Viền trắng Sticker nổi bật (Die-Cut cho cả GIF & PNG)
+                  Thêm viền trắng bao ngoài (Tùy chọn)
                 </span>
                 <span
                   className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
@@ -587,7 +583,7 @@ export default function StickerStudioModal({
                       : 'bg-slate-200 text-slate-600'
                   }`}
                 >
-                  {addWhiteStroke ? 'ĐANG BẬT' : 'TẮT'}
+                  {addWhiteStroke ? 'BẬT' : 'TẮT (Chuẩn gốc)'}
                 </span>
               </button>
 
@@ -630,7 +626,6 @@ export default function StickerStudioModal({
                   />
                 </div>
 
-                {/* Quick Captions Horizontal Scroll on Mobile */}
                 <div className="flex items-center gap-1.5 mt-1.5 overflow-x-auto no-scrollbar pb-0.5">
                   {QUICK_CAPTIONS.map((text) => (
                     <button
@@ -655,7 +650,7 @@ export default function StickerStudioModal({
 
             {/* Primary Action Buttons (Touch-Friendly >= 44px) */}
             <div className="space-y-2 pt-3 border-t border-slate-100 pb-safe">
-              {/* Primary CTA #1: Dedicated Share to Zalo Button */}
+              {/* Primary CTA #1: Dedicated Share Transparent GIF to Zalo & Messenger */}
               <button
                 type="button"
                 onClick={handleShareZalo}
@@ -668,12 +663,26 @@ export default function StickerStudioModal({
                   <Send className="w-4 h-4" />
                 )}
                 <span>
-                  Chia sẻ qua Zalo ({activeTab === 'gif' && !caption.trim() ? 'GIF Động' : 'PNG'} • {stickerSize}px • Có viền)
+                  Gửi Zalo / Messenger ({activeTab === 'gif' && !caption.trim() ? 'GIF Động Trong suốt' : 'PNG Trong suốt'})
                 </span>
               </button>
 
               {/* Secondary CTAs: Copy PNG & Share GIF */}
               <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleShareNative('gif')}
+                  disabled={isSharing}
+                  className="min-h-[42px] py-2.5 px-3 rounded-xl font-semibold text-xs bg-violet-50 hover:bg-violet-100/80 border border-violet-200 text-violet-700 flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                >
+                  {isSharing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Share2 className="w-3.5 h-3.5 text-violet-600" />
+                  )}
+                  <span>Chia sẻ .GIF Trong suốt</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={handleCopyPng}
@@ -687,21 +696,7 @@ export default function StickerStudioModal({
                   ) : (
                     <Copy className="w-3.5 h-3.5 text-indigo-600" />
                   )}
-                  <span>{copiedDone ? 'Đã Copy!' : `Copy PNG (${stickerSize}px)`}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleShareNative('gif')}
-                  disabled={isSharing}
-                  className="min-h-[42px] py-2.5 px-3 rounded-xl font-semibold text-xs bg-violet-50 hover:bg-violet-100/80 border border-violet-200 text-violet-700 flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
-                >
-                  {isSharing ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Share2 className="w-3.5 h-3.5 text-violet-600" />
-                  )}
-                  <span>Gửi GIF ({stickerSize}px)</span>
+                  <span>{copiedDone ? 'Đã Copy!' : 'Copy PNG'}</span>
                 </button>
               </div>
 
@@ -718,7 +713,7 @@ export default function StickerStudioModal({
                     className="px-2.5 py-1 rounded-lg bg-violet-50 hover:bg-violet-100 text-xs font-semibold text-violet-700 flex items-center gap-1 border border-violet-200 cursor-pointer"
                   >
                     <Download className="w-3 h-3 text-violet-600" />
-                    .GIF Chuẩn Zalo
+                    .GIF Trong suốt
                   </button>
                   <button
                     type="button"

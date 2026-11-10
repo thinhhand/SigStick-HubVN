@@ -21,17 +21,17 @@ function isPngBuffer(buf: Buffer): boolean {
 }
 
 export type BgMode =
+  | 'transparent'
   | 'zalo-mobile'
   | 'zalo-light'
   | 'zalo-dark'
-  | 'transparent'
   | 'white'
   | 'dark';
 
 function getBgRgb(bgMode: BgMode): { r: number; g: number; b: number } | null {
   switch (bgMode) {
     case 'zalo-mobile':
-      return { r: 226, g: 233, b: 241 }; // #e2e9f1 - Màu nền khung chat Zalo Mobile Sáng chuẩn
+      return { r: 226, g: 233, b: 241 }; // #e2e9f1 - Màu nền khung chat Zalo Mobile Sáng
     case 'zalo-light':
       return { r: 235, g: 236, b: 240 }; // #ebecf0 - Màu nền khung chat Zalo PC Sáng
     case 'zalo-dark':
@@ -245,49 +245,52 @@ function autoRemoveBackgroundRgba(
 }
 
 /**
- * Nâng độ phân giải Sticker lên tối đa bằng thuật toán nội suy Lanczos-3 (sharp.kernel.lanczos3)
- * kết hợp làm nét thông minh (Unsharp Masking) và chừa lề an toàn cho viền Die-Cut.
+ * Thu phóng ảnh giữ nguyên tỷ lệ khung hình gốc (Aspect Ratio) bằng Lanczos-3 + Unsharp Mask
+ * để khi gửi GIF trong suốt qua Zalo & Messenger hiển thị chuẩn xác như file mẫu của người dùng.
  */
-async function resizeRgbaHighRes(
+async function resizeRgbaKeepAspect(
   src: Uint8Array,
   srcW: number,
   srcH: number,
-  dstSize: number,
-  padRatio = 0.075,
+  dstW: number,
+  dstH: number,
+  padPx = 0,
   yShift = 0
 ): Promise<Uint8Array> {
-  const pad = Math.max(4, Math.round(dstSize * padRatio));
-  const avail = Math.max(32, dstSize - pad * 2);
-  const topPad = Math.max(0, Math.min(dstSize - avail, pad + yShift));
-  const bottomPad = Math.max(0, dstSize - avail - topPad);
-  const leftPad = pad;
-  const rightPad = Math.max(0, dstSize - avail - leftPad);
+  const innerW = Math.max(16, dstW - padPx * 2);
+  const innerH = Math.max(16, dstH - padPx * 2);
 
-  const outBuf = await sharp(Buffer.from(src.buffer, src.byteOffset, src.byteLength), {
+  let pipeline = sharp(Buffer.from(src.buffer, src.byteOffset, src.byteLength), {
     raw: { width: srcW, height: srcH, channels: 4 },
   })
-    .resize(avail, avail, {
+    .resize(innerW, innerH, {
       fit: 'contain',
       kernel: sharp.kernel.lanczos3,
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     })
-    .sharpen({ sigma: 0.65, m1: 0.7, m2: 1.5 })
-    .extend({
+    .sharpen({ sigma: 0.6, m1: 0.6, m2: 1.3 });
+
+  if (padPx > 0 || yShift !== 0) {
+    const topPad = Math.max(0, Math.min(dstH - innerH, padPx + yShift));
+    const bottomPad = Math.max(0, dstH - innerH - topPad);
+    const leftPad = padPx;
+    const rightPad = Math.max(0, dstW - innerW - leftPad);
+    pipeline = pipeline.extend({
       top: topPad,
       bottom: bottomPad,
       left: leftPad,
       right: rightPad,
       background: { r: 0, g: 0, b: 0, alpha: 0 },
-    })
-    .raw()
-    .toBuffer();
+    });
+  }
 
+  const outBuf = await pipeline.raw().toBuffer();
   return new Uint8Array(outBuf);
 }
 
 /**
  * Thuật toán 2-Pass Exact 2D Euclidean Distance Transform (Felzenszwalb & Huttenlocher)
- * độ phức tạp tuyến tính O(W * H), giúp tính khoảng cách chính xác tới từng sub-pixel ở độ phân giải 1024x1024 chỉ trong vài ms.
+ * độ phức tạp tuyến tính O(W * H).
  */
 function computeEdt2d(
   mask: Uint8Array,
@@ -313,7 +316,6 @@ function computeEdt2d(
   }
   if (!hasForeground) return null;
 
-  // Pass 1: dọc theo từng cột
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) f[y] = grid[y * width + x];
     let k = 0;
@@ -339,7 +341,6 @@ function computeEdt2d(
     }
   }
 
-  // Pass 2: ngang theo từng hàng
   for (let y = 0; y < height; y++) {
     const rowOffset = y * width;
     for (let x = 0; x < width; x++) f[x] = grid[rowOffset + x];
@@ -370,8 +371,7 @@ function computeEdt2d(
 }
 
 /**
- * Tạo viền trắng Die-Cut độ phân giải cao khử răng cưa mượt mà (Sub-pixel Anti-Aliased Outline)
- * kèm đường contour dịu nhẹ (#cbd5e1) giúp cả các sticker màu trắng nổi bật sắc nét.
+ * Tạo viền trắng Die-Cut độ phân giải cao khử răng cưa mượt mà (khi người dùng bật tùy chọn Viền trắng)
  */
 function addDieCutOutlineRgba(
   src: Uint8Array,
@@ -404,7 +404,6 @@ function addDieCutOutlineRgba(
     if (d > outerLimit) continue;
 
     if (d <= strokeRadius) {
-      // Bên trong vùng viền trắng Die-Cut
       if (origA > 0) {
         const factor = origA / 255;
         out[idx] = Math.round(src[idx] * factor + 255 * (1 - factor));
@@ -418,7 +417,6 @@ function addDieCutOutlineRgba(
         out[idx + 3] = 255;
       }
     } else if (origA === 0) {
-      // Rìa ngoài chống răng cưa mượt mà (Sub-pixel feathering + subtle #cbd5e1 contour)
       const edgeProgress = (d - strokeRadius) / (outerLimit - strokeRadius);
       const contourAlpha = Math.round(215 * Math.max(0, 1 - edgeProgress));
       out[idx] = 203;
@@ -523,10 +521,11 @@ async function extractStickerFrames(buffer: Buffer): Promise<ExtractedFrames> {
 }
 
 /**
- * Tạo file Animated GIF chuẩn HD sắc nét cho Zalo Mobile, Zalo PC & Messenger:
- * - Upscale bằng Lanczos-3 + Unsharp Mask
- * - Viền trắng Die-Cut khử răng cưa bằng 2D Euclidean Distance Transform
- * - Lượng tử hóa bảng màu 24-bit Truecolor (rgb888) giữ trọn chi tiết màu sắc
+ * Tạo file Animated GIF chuẩn GIF89a nền trong suốt (1-bit Alpha + Disposal=2 Restore to Background)
+ * giống hệt chuẩn Messenger_creation_...gif:
+ * - Gửi qua Zalo và Messenger tự động chuyển động mượt mà và NỀN TRONG SUỐT 100%
+ * - Giữ nguyên tỷ lệ khung hình gốc (Aspect Ratio) của sticker
+ * - Tự động tách nền & khử viền trắng răng cưa (De-matte)
  */
 async function buildZaloCompatibleGif(
   buffer: Buffer,
@@ -537,30 +536,43 @@ async function buildZaloCompatibleGif(
 ): Promise<Buffer> {
   const extracted = await extractStickerFrames(buffer);
   const bgRgb = getBgRgb(bgMode);
-  const strokeRadius = Math.max(3, Math.round(targetSize * 0.018));
-  const padRatio = addStroke ? 0.075 : 0.035;
+
+  // Giữ nguyên tỷ lệ khung hình gốc (ví dụ 320x240 -> 512x384) giống chuẩn Messenger/Zalo GIF
+  const maxDim = Math.min(targetSize, 512);
+  const scale = maxDim / Math.max(extracted.width, extracted.height);
+  const dstW = Math.max(32, Math.round(extracted.width * scale));
+  const dstH = Math.max(32, Math.round(extracted.height * scale));
+
+  const strokeRadius = Math.max(3, Math.round(maxDim * 0.016));
+  const isSingleStatic = extracted.frames.length === 1;
+  const padPx = addStroke
+    ? strokeRadius + 4
+    : isSingleStatic
+      ? Math.max(4, Math.round(maxDim * 0.025))
+      : 0;
 
   const processedFrames: Uint8Array[] = [];
   const frameDelays: number[] = [];
 
-  if (extracted.frames.length === 1) {
+  if (isSingleStatic) {
     const baseFrame = new Uint8Array(extracted.frames[0]);
     if (removeBg) {
       autoRemoveBackgroundRgba(baseFrame, extracted.width, extracted.height);
     }
-    const step = Math.max(2, Math.round(targetSize * 0.01));
+    const step = Math.max(2, Math.round(maxDim * 0.01));
     const bounceShifts = [0, -step, -step * 2, -step, 0, Math.round(step * 0.5)];
     for (const yShift of bounceShifts) {
-      let scaled = await resizeRgbaHighRes(
+      let scaled = await resizeRgbaKeepAspect(
         baseFrame,
         extracted.width,
         extracted.height,
-        targetSize,
-        padRatio,
+        dstW,
+        dstH,
+        padPx,
         yShift
       );
       if (addStroke) {
-        scaled = addDieCutOutlineRgba(scaled, targetSize, targetSize, strokeRadius);
+        scaled = addDieCutOutlineRgba(scaled, dstW, dstH, strokeRadius);
       }
       processedFrames.push(scaled);
       frameDelays.push(90);
@@ -571,16 +583,17 @@ async function buildZaloCompatibleGif(
       if (removeBg) {
         autoRemoveBackgroundRgba(rawFrame, extracted.width, extracted.height);
       }
-      let scaled = await resizeRgbaHighRes(
+      let scaled = await resizeRgbaKeepAspect(
         rawFrame,
         extracted.width,
         extracted.height,
-        targetSize,
-        padRatio,
+        dstW,
+        dstH,
+        padPx,
         0
       );
       if (addStroke) {
-        scaled = addDieCutOutlineRgba(scaled, targetSize, targetSize, strokeRadius);
+        scaled = addDieCutOutlineRgba(scaled, dstW, dstH, strokeRadius);
       }
       processedFrames.push(scaled);
       frameDelays.push(extracted.delays[i] ?? 80);
@@ -589,7 +602,6 @@ async function buildZaloCompatibleGif(
 
   const gif = GIFEncoder();
   const useTransparency = !bgRgb;
-  const fallbackBg = bgRgb || { r: 226, g: 233, b: 241 };
 
   for (let i = 0; i < processedFrames.length; i++) {
     const frame = processedFrames[i];
@@ -608,21 +620,32 @@ async function buildZaloCompatibleGif(
         composited[p + 2] = Math.round(b * alpha + bgRgb.b * (1 - alpha));
         composited[p + 3] = 255;
       } else {
+        // Chế độ Nền trong suốt (Transparent GIF chuẩn Zalo & Messenger):
+        // Khử hoàn toàn bán trong suốt ở rìa để không bị viền bẩn khi chuyển sang 1-bit alpha của GIF
         if (a < 120) {
-          composited[p] = fallbackBg.r;
-          composited[p + 1] = fallbackBg.g;
-          composited[p + 2] = fallbackBg.b;
+          composited[p] = 0;
+          composited[p + 1] = 0;
+          composited[p + 2] = 0;
           composited[p + 3] = 0;
         } else {
-          composited[p] = r;
-          composited[p + 1] = g;
-          composited[p + 2] = b;
+          const alpha = a / 255;
+          composited[p] = Math.max(
+            0,
+            Math.min(255, Math.round((r - 255 * (1 - alpha)) / alpha))
+          );
+          composited[p + 1] = Math.max(
+            0,
+            Math.min(255, Math.round((g - 255 * (1 - alpha)) / alpha))
+          );
+          composited[p + 2] = Math.max(
+            0,
+            Math.min(255, Math.round((b - 255 * (1 - alpha)) / alpha))
+          );
           composited[p + 3] = 255;
         }
       }
     }
 
-    // Mặc định (undefined) trong gifenc là rgb888 (24-bit Truecolor) giúp giữ trọn chi tiết màu sắc, không bị bệt màu
     const fmt = useTransparency ? ('rgba4444' as const) : undefined;
     const palette = quantize(composited, 256, {
       format: fmt,
@@ -634,20 +657,16 @@ async function buildZaloCompatibleGif(
       : -1;
 
     while (palette.length < 256) {
-      palette.push(
-        useTransparency
-          ? [fallbackBg.r, fallbackBg.g, fallbackBg.b, 255]
-          : [fallbackBg.r, fallbackBg.g, fallbackBg.b]
-      );
+      palette.push(useTransparency ? [0, 0, 0, 255] : [0, 0, 0]);
     }
 
-    gif.writeFrame(index, targetSize, targetSize, {
+    gif.writeFrame(index, dstW, dstH, {
       palette,
       delay: frameDelays[i],
       repeat: i === 0 ? 0 : undefined,
       transparent: useTransparency && transparentIndex >= 0,
       transparentIndex: transparentIndex >= 0 ? transparentIndex : 0,
-      dispose: useTransparency ? 2 : 1,
+      dispose: 2, // Disposal = 2 (Restore to Background) để các frame động trong suốt không bị đè bóng lên nhau
     });
   }
 
@@ -667,9 +686,9 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const rawTarget = searchParams.get('url');
   const format = (searchParams.get('format') || 'png').toLowerCase(); // png | gif | webp | raw
-  const bg = (searchParams.get('bg') || 'zalo-mobile') as BgMode;
+  const bg = (searchParams.get('bg') || 'transparent') as BgMode;
   const removeBg = searchParams.get('removeBg') !== '0';
-  const addStroke = searchParams.get('stroke') !== '0';
+  const addStroke = searchParams.get('stroke') === '1';
   const sizeParam = parseInt(searchParams.get('size') || '1024', 10);
   const size = Math.min(Math.max(sizeParam || 1024, 128), 1024);
 
@@ -718,7 +737,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 2. Chuyển đổi sang GIF chuẩn HD (512x512 sắc nét, 24-bit palette quantization, hoạt động 100% trên Zalo)
+    // 2. Chuyển đổi sang GIF động NỀN TRONG SUỐT chuẩn Zalo & Messenger
     if (format === 'gif') {
       const gifSize = Math.min(size, 512);
       const outGif = await buildZaloCompatibleGif(
@@ -731,14 +750,14 @@ export async function GET(request: NextRequest) {
       return new NextResponse(new Uint8Array(outGif), {
         headers: {
           'Content-Type': 'image/gif',
-          'Content-Disposition': 'inline; filename="sticker-zalo-hd.gif"',
+          'Content-Disposition': 'inline; filename="sticker-transparent.gif"',
           'Cache-Control': 'public, max-age=86400',
           'Access-Control-Allow-Origin': '*',
         },
       });
     }
 
-    // 3. Mặc định: Chuyển đổi sang PNG độ phân giải tối đa (lên tới 1024x1024 Ultra HD, Lanczos-3 + Sharpen + Viền Die-Cut mượt)
+    // 3. Mặc định: Chuyển đổi sang PNG độ phân giải tối đa (1024px Ultra HD, nền trong suốt)
     const { data: rawPixels, info } = await sharp(buffer, { animated: false })
       .ensureAlpha()
       .raw()
@@ -748,19 +767,24 @@ export async function GET(request: NextRequest) {
       autoRemoveBackgroundRgba(rawPixels, info.width, info.height);
     }
 
-    const padRatio = addStroke ? 0.075 : 0.035;
-    let scaledRgba = await resizeRgbaHighRes(
+    const scale = size / Math.max(info.width, info.height);
+    const dstW = Math.max(32, Math.round(info.width * scale));
+    const dstH = Math.max(32, Math.round(info.height * scale));
+    const strokeRadius = Math.max(3, Math.round(size * 0.016));
+    const padPx = addStroke ? strokeRadius + 4 : 0;
+
+    let scaledRgba = await resizeRgbaKeepAspect(
       new Uint8Array(rawPixels),
       info.width,
       info.height,
-      size,
-      padRatio,
+      dstW,
+      dstH,
+      padPx,
       0
     );
 
     if (addStroke) {
-      const strokeRadius = Math.max(3, Math.round(size * 0.018));
-      scaledRgba = addDieCutOutlineRgba(scaledRgba, size, size, strokeRadius);
+      scaledRgba = addDieCutOutlineRgba(scaledRgba, dstW, dstH, strokeRadius);
     }
 
     const bgRgb = getBgRgb(bg);
@@ -780,9 +804,9 @@ export async function GET(request: NextRequest) {
         finalRgba[p + 3] = 255;
       } else {
         if (a === 0) {
-          finalRgba[p] = 226;
-          finalRgba[p + 1] = 233;
-          finalRgba[p + 2] = 241;
+          finalRgba[p] = 0;
+          finalRgba[p + 1] = 0;
+          finalRgba[p + 2] = 0;
           finalRgba[p + 3] = 0;
         } else {
           finalRgba[p] = r;
@@ -795,8 +819,8 @@ export async function GET(request: NextRequest) {
 
     const outPng = await sharp(finalRgba, {
       raw: {
-        width: size,
-        height: size,
+        width: dstW,
+        height: dstH,
         channels: 4,
       },
     })
@@ -806,7 +830,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(new Uint8Array(outPng), {
       headers: {
         'Content-Type': 'image/png',
-        'Content-Disposition': 'inline; filename="sticker-zalo-uhd.png"',
+        'Content-Disposition': 'inline; filename="sticker-transparent.png"',
         'Cache-Control': 'public, max-age=86400',
         'Access-Control-Allow-Origin': '*',
       },

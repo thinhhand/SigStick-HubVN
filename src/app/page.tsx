@@ -101,7 +101,7 @@ export default function SigStickHomePage() {
   );
   const [savedPacks, setSavedPacks] = useState<StickerPack[]>([]);
   const [recentStickers, setRecentStickers] = useState<SavedStickerEntry[]>([]);
-  const [copyBgMode, setCopyBgMode] = useState<BgMode>("zalo-mobile");
+  const [copyBgMode, setCopyBgMode] = useState<BgMode>("transparent");
   const [stickerSize, setStickerSize] = useState<StickerSizePreset>(1024);
 
   // Modals & Active Selections
@@ -161,20 +161,20 @@ export default function SigStickHomePage() {
 
   const handleToggleCopyBgMode = () => {
     const order: BgMode[] = [
+      "transparent",
       "zalo-mobile",
       "zalo-light",
       "zalo-dark",
-      "transparent",
     ];
     const nextIdx = (order.indexOf(copyBgMode) + 1) % order.length;
     const next = order[nextIdx];
     setCopyBgMode(next);
     setDefaultCopyBgMode(next);
     const labelMap: Record<BgMode, string> = {
-      "zalo-mobile": "Nền Zalo Điện thoại (#e2e9f1 • Không bao giờ bị nền đen/trắng)",
+      transparent: "Nền trong suốt 100% (Chuẩn GIF Zalo & Messenger)",
+      "zalo-mobile": "Nền Zalo Điện thoại (#e2e9f1)",
       "zalo-light": "Nền Zalo PC Sáng (#ebecf0)",
       "zalo-dark": "Nền Zalo Tối (#22262b)",
-      transparent: "Tự tách nền (Trong suốt)",
       white: "Nền trắng",
       dark: "Nền tối",
     };
@@ -462,12 +462,12 @@ export default function SigStickHomePage() {
       await copyStickerToClipboard(sticker.url, {
         bg: copyBgMode,
         size: stickerSize,
-        addWhiteStroke: true,
+        addWhiteStroke: false,
       });
       recordRecentSticker(sticker, pack);
       setCopiedPreviewKey(key);
       showToast(
-        `Đã Copy Sticker chuẩn Zalo (${stickerSize}px • Có viền • Không nền đen/trắng)!`,
+        `Đã Copy Sticker nền trong suốt (${stickerSize}px)! Dán vào Zalo / Messenger ngay.`,
         "success"
       );
       setTimeout(() => {
@@ -480,8 +480,8 @@ export default function SigStickHomePage() {
           {
             bg: copyBgMode,
             size: stickerSize,
-            addWhiteStroke: true,
-            preferGif: isPackAnimated(pack),
+            addWhiteStroke: false,
+            preferGif: true,
           },
           pack.title
         );

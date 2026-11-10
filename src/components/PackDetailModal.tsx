@@ -90,40 +90,39 @@ export default function PackDetailModal({
     setDefaultStickerSize(size);
   };
 
-  const executeZaloShare = async (sticker: StickerItem, forceGif?: boolean) => {
+  const executeZaloShare = async (sticker: StickerItem) => {
     const rawUrl = normalizeCdnUrl(sticker.url);
     onStickerUsed(sticker, pack);
     setCopyingUrl(rawUrl);
     try {
-      const useGif = forceGif ?? animated;
       const res = await shareStickerToZalo(
         rawUrl,
         {
           bg: copyBgMode,
           size: stickerSize,
-          addWhiteStroke: true,
-          preferGif: useGif,
+          addWhiteStroke: false,
+          preferGif: true,
         },
         pack.title
       );
       if (res === 'shared') {
         onToast(
-          `Đã mở Chia sẻ Zalo (${useGif ? 'GIF động' : 'PNG'} • ${stickerSize}px • Có viền • Không nền đen/trắng)!`
+          `Đã mở Chia sẻ GIF động nền trong suốt (${stickerSize}px) sang Zalo / Messenger!`
         );
       } else if (res === 'copied') {
         onToast(
-          `Đã Copy Sticker chuẩn Zalo (${stickerSize}px + Viền trắng)! Mở Zalo và Dán ngay.`
+          `Đã Copy Sticker nền trong suốt (${stickerSize}px)! Mở Zalo / Messenger và Dán ngay.`
         );
       } else {
         onToast(
-          `Đã tải Sticker ${useGif ? '.GIF động' : '.PNG'} chuẩn Zalo (${stickerSize}px)! Gửi vào Zalo ngay.`
+          `Đã tải file .GIF động nền trong suốt (${stickerSize}px)! Gửi qua Zalo / Messenger sẽ tự động chạy.`
         );
       }
       setCopiedUrl(rawUrl);
       setTimeout(() => setCopiedUrl((prev) => (prev === rawUrl ? null : prev)), 2000);
     } catch (err: any) {
       if (err?.name !== 'AbortError') {
-        onToast('Lỗi khi chuẩn bị sticker cho Zalo.');
+        onToast('Lỗi khi chuẩn bị sticker GIF trong suốt.');
       }
     } finally {
       setCopyingUrl(null);
@@ -140,7 +139,7 @@ export default function PackDetailModal({
     }
 
     if (quickClickMode === 'share-zalo') {
-      await executeZaloShare(sticker, animated);
+      await executeZaloShare(sticker);
       return;
     }
 
@@ -150,11 +149,11 @@ export default function PackDetailModal({
       await copyStickerToClipboard(rawUrl, {
         bg: copyBgMode,
         size: stickerSize,
-        addWhiteStroke: true,
+        addWhiteStroke: false,
       });
       setCopiedUrl(rawUrl);
       onToast(
-        `Đã Copy Sticker (${stickerSize}px • Viền trắng • Không nền đen/trắng)! Dán vào Zalo ngay.`
+        `Đã Copy Sticker PNG nền trong suốt (${stickerSize}px)! Dán vào Zalo / Messenger ngay.`
       );
       setTimeout(() => setCopiedUrl((prev) => (prev === rawUrl ? null : prev)), 2000);
     } catch {
@@ -172,7 +171,7 @@ export default function PackDetailModal({
         setZipProgress({ current, total });
       });
       onToast(
-        `Đã tải trọn bộ "${pack.title}" (${pack.stickers.length} sticker .${format.toUpperCase()})!`
+        `Đã tải trọn bộ "${pack.title}" (${pack.stickers.length} sticker .${format.toUpperCase()} nền trong suốt)!`
       );
     } catch {
       onToast('Không thể tạo file ZIP lúc này.');
@@ -261,7 +260,7 @@ export default function PackDetailModal({
             </div>
           </div>
 
-          {/* Action Buttons: Save, ZIP, Close */}
+          {/* Action Buttons: Save, ZIP GIF, ZIP PNG, Close */}
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
@@ -283,29 +282,10 @@ export default function PackDetailModal({
 
             <button
               type="button"
-              onClick={() => handleDownloadAllZip('png')}
-              disabled={zipDownloading !== null}
-              className="min-h-[38px] px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
-              title="Tải trọn bộ ảnh PNG trong file ZIP"
-            >
-              {zipDownloading === 'png' ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
-              ) : (
-                <Download className="w-3.5 h-3.5 text-indigo-600" />
-              )}
-              <span className="text-[11px]">
-                {zipDownloading === 'png' && zipProgress
-                  ? `${zipProgress.current}/${zipProgress.total}`
-                  : 'ZIP'}
-              </span>
-            </button>
-
-            <button
-              type="button"
               onClick={() => handleDownloadAllZip('gif')}
               disabled={zipDownloading !== null}
-              className="min-h-[38px] px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-violet-50 hover:bg-violet-100/80 border border-violet-200 text-violet-700 hidden sm:flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
-              title="Chuyển toàn bộ sang GIF động chuẩn Zalo và nén ZIP"
+              className="min-h-[38px] px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-violet-50 hover:bg-violet-100/80 border border-violet-200 text-violet-700 flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+              title="Tải trọn bộ GIF động nền trong suốt trong file ZIP"
             >
               {zipDownloading === 'gif' ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-violet-600" />
@@ -321,6 +301,25 @@ export default function PackDetailModal({
 
             <button
               type="button"
+              onClick={() => handleDownloadAllZip('png')}
+              disabled={zipDownloading !== null}
+              className="min-h-[38px] px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 hidden sm:flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+              title="Tải trọn bộ ảnh PNG trong file ZIP"
+            >
+              {zipDownloading === 'png' ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+              ) : (
+                <Download className="w-3.5 h-3.5 text-indigo-600" />
+              )}
+              <span className="text-[11px]">
+                {zipDownloading === 'png' && zipProgress
+                  ? `${zipProgress.current}/${zipProgress.total}`
+                  : 'ZIP PNG'}
+              </span>
+            </button>
+
+            <button
+              type="button"
               onClick={onClose}
               className="min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 cursor-pointer"
               aria-label="Đóng"
@@ -330,7 +329,7 @@ export default function PackDetailModal({
           </div>
         </div>
 
-        {/* Compact Segmented Controls: Click Action, Size & Zalo Background */}
+        {/* Compact Segmented Controls: Click Action, Size & Background */}
         <div className="px-3.5 sm:px-6 py-2.5 bg-slate-50/90 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           {/* Segmented Click Action */}
           <div className="grid grid-cols-3 sm:flex items-center gap-1 bg-slate-200/70 p-1 rounded-xl">
@@ -344,9 +343,7 @@ export default function PackDetailModal({
               }`}
             >
               <Send className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">
-                Chia sẻ Zalo {animated ? '(GIF)' : ''}
-              </span>
+              <span className="truncate">Gửi GIF Trong suốt</span>
             </button>
 
             <button
@@ -382,7 +379,7 @@ export default function PackDetailModal({
             <div className="flex items-center gap-1 pr-2 mr-1 border-r border-slate-200 shrink-0">
               <span className="text-[11px] text-slate-500 flex items-center gap-1 shrink-0">
                 <Maximize2 className="w-3 h-3 text-indigo-500" />
-                Cỡ:
+                Độ nét:
               </span>
               {STICKER_SIZE_OPTIONS.map((opt) => (
                 <button
@@ -408,8 +405,13 @@ export default function PackDetailModal({
             {(
               [
                 {
+                  id: 'transparent',
+                  label: 'Trong suốt (Chuẩn GIF Zalo/Messenger)',
+                  dot: 'bg-white border-dashed border-teal-500',
+                },
+                {
                   id: 'zalo-mobile',
-                  label: 'Zalo ĐT (Không đen/trắng)',
+                  label: 'Zalo ĐT',
                   dot: 'bg-[#e2e9f1] border-sky-400',
                 },
                 {
@@ -421,11 +423,6 @@ export default function PackDetailModal({
                   id: 'zalo-dark',
                   label: 'Zalo Tối',
                   dot: 'bg-[#22262b] border-slate-600',
-                },
-                {
-                  id: 'transparent',
-                  label: 'Trong suốt',
-                  dot: 'bg-white border-dashed border-teal-500',
                 },
               ] as const
             ).map((item) => (
@@ -446,7 +443,7 @@ export default function PackDetailModal({
           </div>
         </div>
 
-        {/* Sticker Grid — 3 to 4 Columns on Mobile, Soft Cards with 1-Tap Zalo Share Button */}
+        {/* Sticker Grid — 3 to 4 Columns on Mobile, Clean Transparent Cards */}
         <div className="p-3 sm:p-5 overflow-y-auto flex-1 bg-[#f8fafc]">
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3">
             {pack.stickers.map((sticker, index) => {
@@ -464,7 +461,7 @@ export default function PackDetailModal({
                   className={`group relative aspect-square rounded-2xl p-2 pb-7 sm:pb-8 flex items-center justify-center cursor-pointer border transition-all select-none active:scale-95 ${
                     isCopied
                       ? 'bg-teal-50 border-teal-400 scale-[0.98]'
-                      : 'bg-[#e2e9f1]/55 hover:bg-[#e2e9f1] border-slate-200/90 hover:border-[#0068ff]/50 shadow-[0_1px_2px_rgba(15,23,42,0.03)]'
+                      : 'bg-white hover:bg-sky-50/40 border-slate-200/90 hover:border-[#0068ff]/50 shadow-[0_1px_2px_rgba(15,23,42,0.03)]'
                   }`}
                 >
                   {/* Emoji Corner */}
@@ -494,7 +491,7 @@ export default function PackDetailModal({
                     />
                   </button>
 
-                  {/* Sticker Image with Simulated Die-Cut White Outline Preview */}
+                  {/* Sticker Image */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={thumbUrl}
@@ -505,22 +502,22 @@ export default function PackDetailModal({
                         e.currentTarget.src = rawUrl;
                       }
                     }}
-                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200 drop-shadow-[0_0_2px_#fff]"
+                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
                   />
 
-                  {/* Dedicated Bottom Action Strip: 1-Tap Share to Zalo & Studio */}
+                  {/* Dedicated Bottom Action Strip: 1-Tap Share Transparent GIF to Zalo/Messenger & Studio */}
                   <div className="absolute inset-x-1.5 bottom-1.5 flex items-center gap-1 z-10">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        executeZaloShare(sticker, animated);
+                        executeZaloShare(sticker);
                       }}
-                      title="Chia sẻ thẳng qua Zalo (Chuẩn GIF/PNG + Cỡ 180px + Viền trắng + Không nền đen/trắng)"
+                      title="Chia sẻ file GIF động nền trong suốt qua Zalo & Messenger"
                       className="flex-1 py-1 px-1.5 rounded-lg bg-[#0068ff] hover:bg-[#0057d9] text-white text-[10px] font-bold flex items-center justify-center gap-1 shadow-2xs transition cursor-pointer active:scale-95"
                     >
                       <Share2 className="w-2.5 h-2.5 shrink-0" />
-                      <span className="truncate">Zalo {animated ? 'GIF' : ''}</span>
+                      <span className="truncate">Zalo GIF</span>
                     </button>
 
                     <button
@@ -530,8 +527,8 @@ export default function PackDetailModal({
                         onSelectStickerForStudio(sticker, pack);
                       }}
                       aria-label="Mở Studio chế chữ"
-                      title="Chỉnh sửa chữ / Xem trước khung chat Zalo"
-                      className="p-1 rounded-lg bg-white/90 hover:bg-indigo-600 text-indigo-600 hover:text-white border border-slate-200/80 shadow-2xs transition cursor-pointer"
+                      title="Chỉnh sửa chữ / Xem trước trong Studio"
+                      className="p-1 rounded-lg bg-slate-100 hover:bg-indigo-600 text-indigo-600 hover:text-white border border-slate-200/80 shadow-2xs transition cursor-pointer"
                     >
                       <Sparkles className="w-3 h-3" />
                     </button>
@@ -544,7 +541,7 @@ export default function PackDetailModal({
                         <>
                           <Loader2 className="w-5 h-5 animate-spin text-[#0068ff]" />
                           <span className="text-[10px] font-bold text-[#0068ff]">
-                            Đang tạo chuẩn Zalo...
+                            Đang tạo GIF trong suốt...
                           </span>
                         </>
                       ) : (
@@ -568,7 +565,7 @@ export default function PackDetailModal({
         {/* Compact Footer */}
         <div className="px-4 py-2.5 border-t border-slate-200/80 bg-white flex items-center justify-between gap-2 text-[11px] text-slate-500 pb-safe">
           <span className="truncate">
-            Chạm sticker hoặc bấm nút <strong className="text-[#0068ff]">Zalo</strong> để gửi chuẩn cỡ {stickerSize}px, có viền trắng, không bị nền đen/trắng
+            Chạm sticker hoặc bấm <strong className="text-[#0068ff]">Zalo GIF</strong> để gửi file <strong className="text-slate-700">.GIF tự chuyển động & nền trong suốt</strong> qua Zalo / Messenger
           </span>
           <div className="flex items-center gap-3 shrink-0">
             {pack.telegramUrl && (
