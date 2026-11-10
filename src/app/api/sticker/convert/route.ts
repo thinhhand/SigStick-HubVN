@@ -243,12 +243,46 @@ function autoRemoveBackgroundRgba(
 }
 
 /**
- * Chuyển đổi APNG nhiều frame sang Animated GIF bằng upng-js + gifenc (hỗ trợ tự tách nền)
+ * Thu phóng buffer RGBA (Nearest/Bilinear kết hợp) về kích thước nhỏ gọn cho Sticker Mobile
+ */
+function resizeRgbaFrame(
+  src: Uint8Array,
+  srcW: number,
+  srcH: number,
+  dstW: number,
+  dstH: number
+): Uint8Array {
+  if (srcW === dstW && srcH === dstH) return src;
+  const dst = new Uint8Array(dstW * dstH * 4);
+  const scale = Math.min(dstW / srcW, dstH / srcH);
+  const drawW = Math.max(1, Math.round(srcW * scale));
+  const drawH = Math.max(1, Math.round(srcH * scale));
+  const offsetX = Math.floor((dstW - drawW) / 2);
+  const offsetY = Math.floor((dstH - drawH) / 2);
+
+  for (let y = 0; y < drawH; y++) {
+    const sy = Math.min(srcH - 1, Math.floor((y / drawH) * srcH));
+    for (let x = 0; x < drawW; x++) {
+      const sx = Math.min(srcW - 1, Math.floor((x / drawW) * srcW));
+      const sIdx = (sy * srcW + sx) * 4;
+      const dIdx = ((y + offsetY) * dstW + (x + offsetX)) * 4;
+      dst[dIdx] = src[sIdx];
+      dst[dIdx + 1] = src[sIdx + 1];
+      dst[dIdx + 2] = src[sIdx + 2];
+      dst[dIdx + 3] = src[sIdx + 3];
+    }
+  }
+  return dst;
+}
+
+/**
+ * Chuyển đổi APNG nhiều frame sang Animated GIF bằng upng-js + gifenc (hỗ trợ tự tách nền & thu nhỏ kích thước vừa khung chat Mobile)
  */
 function convertApngToGif(
   buffer: Buffer,
   bgMode: BgMode,
-  removeBg = true
+  removeBg = true,
+  targetSize = 240
 ): Uint8Array | null {
   try {
     const ab = buffer.buffer.slice(
@@ -262,24 +296,34 @@ function convertApngToGif(
       return null; // Không phải ảnh động nhiều frame
     }
 
-    const width = img.width;
-    const height = img.height;
+    const srcWidth = img.width;
+    const srcHeight = img.height;
+    const width = Math.min(srcWidth, targetSize);
+    const height = Math.min(srcHeight, targetSize);
     const gif = GIFEncoder();
     const bgRgb = getBgRgb(bgMode);
 
     for (let i = 0; i < rgbaFrames.length; i++) {
       const rawFrame = new Uint8Array(rgbaFrames[i].slice(0));
       if (removeBg) {
-        autoRemoveBackgroundRgba(rawFrame, width, height);
+        autoRemoveBackgroundRgba(rawFrame, srcWidth, srcHeight);
       }
 
-      const processed = new Uint8Array(rawFrame.length);
+      const scaledFrame = resizeRgbaFrame(
+        rawFrame,
+        srcWidth,
+        srcHeight,
+        width,
+        height
+      );
 
-      for (let p = 0; p < rawFrame.length; p += 4) {
-        const r = rawFrame[p];
-        const g = rawFrame[p + 1];
-        const b = rawFrame[p + 2];
-        const a = rawFrame[p + 3];
+      const processed = new Uint8Array(scaledFrame.length);
+
+      for (let p = 0; p < scaledFrame.length; p += 4) {
+        const r = scaledFrame[p];
+        const g = scaledFrame[p + 1];
+        const b = scaledFrame[p + 2];
+        const a = scaledFrame[p + 3];
 
         if (bgRgb) {
           const alpha = a / 255;
@@ -340,8 +384,8 @@ export async function GET(request: NextRequest) {
   const format = (searchParams.get('format') || 'png').toLowerCase(); // png | gif | webp | raw
   const bg = (searchParams.get('bg') || 'transparent') as BgMode;
   const removeBg = searchParams.get('removeBg') !== '0';
-  const sizeParam = parseInt(searchParams.get('size') || '512', 10);
-  const size = Math.min(Math.max(sizeParam || 512, 128), 1024);
+  const sizeParam = parseInt(searchParams.get('size') || '240', 10);
+  const size = Math.min(Math.max(sizeParam || 240, 96), 1024);
 
   if (!rawTarget) {
     return NextResponse.json({ error: 'Missing url parameter' }, { status: 400 });
@@ -390,9 +434,10 @@ export async function GET(request: NextRequest) {
 
     // 2. Chuyển đổi sang GIF (Tương thích gửi sticker động qua Messenger & Zalo)
     if (format === 'gif') {
+      const gifSize = Math.min(size, 420);
       // Nếu file gốc là PNG (có thể là APNG động trên SigStick), ưu tiên giải mã APNG
       if (isPngBuffer(buffer)) {
-        const apngGifBytes = convertApngToGif(buffer, bg, removeBg);
+        const apngGifBytes = convertApngToGif(buffer, bg, removeBg, gifSize);
         if (apngGifBytes) {
           return new NextResponse(new Uint8Array(apngGifBytes), {
             headers: {
@@ -408,7 +453,6 @@ export async function GET(request: NextRequest) {
       // Kiểm tra xem WebP có nhiều frame hay ảnh tĩnh
       const meta = await sharp(buffer, { animated: true }).metadata();
       const isAnimatedWebp = (meta.pages ?? 1) > 1;
-      const gifSize = Math.min(size, 360);
       const bgRgb = getBgRgb(bg);
 
       if (!isAnimatedWebp) {

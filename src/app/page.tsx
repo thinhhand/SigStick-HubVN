@@ -23,6 +23,7 @@ import {
   ChevronRight,
   Trash2,
   Globe,
+  Maximize2,
 } from "lucide-react";
 import {
   StickerPack,
@@ -37,9 +38,13 @@ import {
 } from "@/lib/sigstick";
 import {
   BgMode,
+  StickerSizePreset,
+  STICKER_SIZE_OPTIONS,
   copyStickerToClipboard,
   getDefaultCopyBgMode,
   setDefaultCopyBgMode,
+  getDefaultStickerSize,
+  setDefaultStickerSize,
 } from "@/lib/stickerActions";
 import PackDetailModal from "@/components/PackDetailModal";
 import StickerStudioModal from "@/components/StickerStudioModal";
@@ -95,6 +100,7 @@ export default function SigStickHomePage() {
   const [savedPacks, setSavedPacks] = useState<StickerPack[]>([]);
   const [recentStickers, setRecentStickers] = useState<SavedStickerEntry[]>([]);
   const [copyBgMode, setCopyBgMode] = useState<BgMode>("transparent");
+  const [stickerSize, setStickerSize] = useState<StickerSizePreset>(180);
 
   // Modals & Active Selections
   const [selectedPack, setSelectedPack] = useState<StickerPack | null>(null);
@@ -145,6 +151,7 @@ export default function SigStickHomePage() {
       if (recentRaw) setRecentStickers(JSON.parse(recentRaw));
 
       setCopyBgMode(getDefaultCopyBgMode());
+      setStickerSize(getDefaultStickerSize());
     } catch (e) {
       console.error("Failed to read localStorage", e);
     }
@@ -164,6 +171,19 @@ export default function SigStickHomePage() {
       dark: "Nền tối",
     };
     showToast(`Đã đổi chế độ: ${labelMap[next]}`, "info");
+  };
+
+  const handleToggleStickerSize = () => {
+    const order: StickerSizePreset[] = [180, 220, 320];
+    const nextIdx = (order.indexOf(stickerSize) + 1) % order.length;
+    const next = order[nextIdx];
+    setStickerSize(next);
+    setDefaultStickerSize(next);
+    const found = STICKER_SIZE_OPTIONS.find((o) => o.size === next);
+    showToast(
+      `Đã đổi cỡ Sticker: ${found?.label || `${next}px`}`,
+      "info"
+    );
   };
 
   // Save helpers
@@ -433,16 +453,17 @@ export default function SigStickHomePage() {
     try {
       await copyStickerToClipboard(sticker.url, {
         bg: copyBgMode,
+        size: stickerSize,
         addWhiteStroke: false,
       });
       recordRecentSticker(sticker, pack);
       setCopiedPreviewKey(key);
       showToast(
         copyBgMode === "transparent"
-          ? "Đã tự tách nền & Copy Sticker! Dán vào Zalo/Messenger ngay."
+          ? `Đã tách nền & Copy Sticker (${stickerSize}px)! Dán vào Zalo ngay.`
           : copyBgMode === "zalo-light"
-          ? "Đã Copy Sticker (Tiệp nền Zalo Sáng)!"
-          : "Đã Copy Sticker (Tiệp nền Zalo Tối)!",
+          ? `Đã Copy Sticker (${stickerSize}px, Zalo Sáng)!`
+          : `Đã Copy Sticker (${stickerSize}px, Zalo Tối)!`,
         "success"
       );
       setTimeout(() => {
@@ -502,7 +523,7 @@ export default function SigStickHomePage() {
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 hidden sm:block">
-                Tự động tách nền • Gửi Zalo & Messenger 1 chạm
+                Tự động tách nền • Cỡ chuẩn Zalo Mobile 1 chạm
               </p>
             </div>
           </div>
@@ -569,9 +590,24 @@ export default function SigStickHomePage() {
           {/* Right Quick Actions (Mobile-Ergonomic) */}
           <div className="flex items-center gap-1.5 sm:gap-2">
             <button
+              onClick={handleToggleStickerSize}
+              title="Đổi kích thước Sticker khi gửi qua Zalo / Messenger"
+              className="min-h-[38px] flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl bg-indigo-50/90 hover:bg-indigo-100/80 text-indigo-700 border border-indigo-200/90 text-[11px] sm:text-xs font-semibold transition cursor-pointer active:scale-95"
+            >
+              <Maximize2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+              <span>
+                {stickerSize === 180
+                  ? "Cỡ Nhỏ (180px)"
+                  : stickerSize === 220
+                  ? "Cỡ Vừa (220px)"
+                  : "Cỡ Lớn (320px)"}
+              </span>
+            </button>
+
+            <button
               onClick={handleToggleCopyBgMode}
               title="Chế độ tách nền tự động khi Copy / Gửi Sticker"
-              className="min-h-[38px] flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-teal-50/90 hover:bg-teal-100/80 text-teal-700 border border-teal-200/90 text-xs font-semibold transition cursor-pointer active:scale-95"
+              className="min-h-[38px] flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-teal-50/90 hover:bg-teal-100/80 text-teal-700 border border-teal-200/90 text-xs font-semibold transition cursor-pointer active:scale-95"
             >
               <span
                 className={`w-2.5 h-2.5 rounded-full border shrink-0 ${
@@ -584,10 +620,10 @@ export default function SigStickHomePage() {
               />
               <span className="hidden md:inline">
                 {copyBgMode === "transparent"
-                  ? "Tự tách nền (Không BG)"
+                  ? "Tự tách nền"
                   : copyBgMode === "zalo-light"
-                  ? "Tiệp nền Zalo Sáng"
-                  : "Tiệp nền Zalo Tối"}
+                  ? "Zalo Sáng"
+                  : "Zalo Tối"}
               </span>
               <span className="md:hidden text-[11px]">
                 {copyBgMode === "transparent"

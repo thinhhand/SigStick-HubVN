@@ -14,6 +14,7 @@ import {
   Loader2,
   ExternalLink,
   Layers,
+  Maximize2,
 } from 'lucide-react';
 import {
   StickerItem,
@@ -26,11 +27,15 @@ import {
 } from '@/lib/sigstick';
 import {
   BgMode,
+  StickerSizePreset,
+  STICKER_SIZE_OPTIONS,
   copyStickerToClipboard,
   downloadPackZip,
   downloadSticker,
   getDefaultCopyBgMode,
   setDefaultCopyBgMode,
+  getDefaultStickerSize,
+  setDefaultStickerSize,
   shareStickerViaNativeSheet,
 } from '@/lib/stickerActions';
 
@@ -64,6 +69,7 @@ export default function PackDetailModal({
     'copy-png'
   );
   const [copyBgMode, setCopyBgMode] = useState<BgMode>(() => getDefaultCopyBgMode());
+  const [stickerSize, setStickerSize] = useState<StickerSizePreset>(() => getDefaultStickerSize());
   const [copyingUrl, setCopyingUrl] = useState<string | null>(null);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const [zipDownloading, setZipDownloading] = useState<'png' | 'gif' | null>(null);
@@ -72,6 +78,11 @@ export default function PackDetailModal({
   const handleChangeCopyBgMode = (mode: BgMode) => {
     setCopyBgMode(mode);
     setDefaultCopyBgMode(mode);
+  };
+
+  const handleChangeStickerSize = (size: StickerSizePreset) => {
+    setStickerSize(size);
+    setDefaultStickerSize(size);
   };
 
   const handleQuickAction = async (sticker: StickerItem) => {
@@ -89,16 +100,21 @@ export default function PackDetailModal({
         const res = await shareStickerViaNativeSheet(
           rawUrl,
           'gif',
-          { bg: copyBgMode },
+          { bg: copyBgMode, size: stickerSize },
           pack.title
         );
         if (res === 'unsupported') {
-          await downloadSticker(rawUrl, 'gif', { bg: copyBgMode }, `sticker-${pack.id}`);
+          await downloadSticker(
+            rawUrl,
+            'gif',
+            { bg: copyBgMode, size: stickerSize },
+            `sticker-${pack.id}`
+          );
           onToast(
-            'Đã chuyển sang .GIF động và tải về! Hãy gửi file GIF vào Zalo / Messenger.'
+            `Đã chuyển sang .GIF động (${stickerSize}px) và tải về! Hãy gửi vào Zalo / Messenger.`
           );
         } else {
-          onToast('Đã mở bảng chia sẻ GIF sang Zalo / Messenger!');
+          onToast(`Đã mở bảng chia sẻ GIF (${stickerSize}px) sang Zalo / Messenger!`);
         }
         setCopiedUrl(rawUrl);
         setTimeout(() => setCopiedUrl((prev) => (prev === rawUrl ? null : prev)), 2000);
@@ -112,17 +128,17 @@ export default function PackDetailModal({
       return;
     }
 
-    // Mặc định: Copy PNG vào Clipboard
+    // Mặc định: Copy PNG vào Clipboard với kích thước chuẩn Sticker Mobile
     setCopyingUrl(rawUrl);
     try {
-      await copyStickerToClipboard(rawUrl, { bg: copyBgMode, size: 512 });
+      await copyStickerToClipboard(rawUrl, { bg: copyBgMode, size: stickerSize });
       setCopiedUrl(rawUrl);
       onToast(
         copyBgMode === 'transparent'
-          ? 'Đã tự tách nền & copy Sticker! Dán vào Zalo/Messenger ngay.'
+          ? `Đã tự tách nền & copy Sticker (${stickerSize}px)! Dán vào Zalo ngay.`
           : copyBgMode === 'zalo-light'
-            ? 'Đã copy Sticker (tiệp nền Zalo sáng)!'
-            : 'Đã copy Sticker (tiệp nền Zalo tối)!'
+            ? `Đã copy Sticker (${stickerSize}px, tiệp nền Zalo sáng)!`
+            : `Đã copy Sticker (${stickerSize}px, tiệp nền Zalo tối)!`
       );
       setTimeout(() => setCopiedUrl((prev) => (prev === rawUrl ? null : prev)), 2000);
     } catch {
@@ -338,8 +354,31 @@ export default function PackDetailModal({
             </button>
           </div>
 
-          {/* Background Mode Pills */}
+          {/* Background Mode & Sticker Size Pills */}
           <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+            {/* Size Selector Pills */}
+            <div className="flex items-center gap-1 pr-2 mr-1 border-r border-slate-200 shrink-0">
+              <span className="text-[11px] text-slate-500 flex items-center gap-1 shrink-0">
+                <Maximize2 className="w-3 h-3 text-indigo-500" />
+                Cỡ:
+              </span>
+              {STICKER_SIZE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.size}
+                  type="button"
+                  onClick={() => handleChangeStickerSize(opt.size)}
+                  title={opt.desc}
+                  className={`shrink-0 px-2 py-1 rounded-lg text-[11px] font-medium border transition-all cursor-pointer ${
+                    stickerSize === opt.size
+                      ? 'bg-indigo-50 border-indigo-300 text-indigo-700 font-semibold'
+                      : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {opt.shortLabel}
+                </button>
+              ))}
+            </div>
+
             <span className="text-[11px] text-slate-500 flex items-center gap-1 mr-1 shrink-0">
               <Layers className="w-3 h-3 text-teal-600" />
               Nền:
@@ -348,7 +387,7 @@ export default function PackDetailModal({
               [
                 {
                   id: 'transparent',
-                  label: 'Tự tách nền (Trong suốt)',
+                  label: 'Tự tách nền',
                   dot: 'bg-white border-dashed border-teal-500',
                 },
                 {

@@ -15,16 +15,21 @@ import {
   Image as ImageIcon,
   Loader2,
   MessageCircle,
+  Maximize2,
 } from 'lucide-react';
 import { StickerItem, StickerPack, normalizeCdnUrl, isPackAnimated } from '@/lib/sigstick';
 import {
   BgMode,
+  StickerSizePreset,
+  STICKER_SIZE_OPTIONS,
   copyStickerToClipboard,
   downloadSticker,
   getConvertedStickerUrl,
   getDefaultCopyBgMode,
+  getDefaultStickerSize,
   renderCustomizedPngBlob,
   setDefaultCopyBgMode,
+  setDefaultStickerSize,
   shareStickerViaNativeSheet,
 } from '@/lib/stickerActions';
 
@@ -59,6 +64,7 @@ export default function StickerStudioModal({
   const animatedPack = isPackAnimated(pack);
   const [activeTab, setActiveTab] = useState<'png' | 'gif'>(animatedPack ? 'gif' : 'png');
   const [bgMode, setBgMode] = useState<BgMode>(() => getDefaultCopyBgMode());
+  const [stickerSize, setStickerSize] = useState<StickerSizePreset>(() => getDefaultStickerSize());
   const [addWhiteStroke, setAddWhiteStroke] = useState(false);
   const [caption, setCaption] = useState('');
   const [captionColor, setCaptionColor] = useState('#ffffff');
@@ -76,9 +82,9 @@ export default function StickerStudioModal({
   const [gifLoading, setGifLoading] = useState(false);
 
   const rawStickerUrl = normalizeCdnUrl(sticker.url);
-  const convertedGifUrl = getConvertedStickerUrl(rawStickerUrl, 'gif', bgMode, 360);
+  const convertedGifUrl = getConvertedStickerUrl(rawStickerUrl, 'gif', bgMode, stickerSize);
 
-  // Render preview PNG khi người dùng đổi tùy chỉnh chữ / viền / nền
+  // Render preview PNG khi người dùng đổi tùy chỉnh chữ / viền / nền / kích thước
   useEffect(() => {
     let revoked = false;
     let currentObjUrl = '';
@@ -97,7 +103,7 @@ export default function StickerStudioModal({
           captionColor,
           captionPosition,
           addWhiteStroke,
-          size: 512,
+          size: stickerSize,
         });
         if (!revoked) {
           currentObjUrl = URL.createObjectURL(blob);
@@ -117,7 +123,7 @@ export default function StickerStudioModal({
       revoked = true;
       clearTimeout(timer);
     };
-  }, [rawStickerUrl, bgMode, caption, captionColor, captionPosition, addWhiteStroke, activeTab]);
+  }, [rawStickerUrl, bgMode, caption, captionColor, captionPosition, addWhiteStroke, activeTab, stickerSize]);
 
   const handleCopyPng = async () => {
     setIsCopying(true);
@@ -128,10 +134,10 @@ export default function StickerStudioModal({
         captionColor,
         captionPosition,
         addWhiteStroke,
-        size: 512,
+        size: stickerSize,
       });
       setCopiedDone(true);
-      onCopied('Đã copy Sticker (PNG)! Mở Zalo hoặc Messenger và Dán ngay.');
+      onCopied(`Đã copy Sticker (${stickerSize}px)! Mở Zalo hoặc Messenger và Dán ngay.`);
       setTimeout(() => setCopiedDone(false), 2500);
     } catch (err: any) {
       alert(err?.message || 'Không thể copy vào Clipboard. Hãy thử nhấn Chia sẻ hoặc Tải xuống!');
@@ -152,7 +158,7 @@ export default function StickerStudioModal({
           captionColor,
           captionPosition,
           addWhiteStroke,
-          size: format === 'gif' ? 360 : 512,
+          size: stickerSize,
         },
         pack.title
       );
@@ -161,17 +167,17 @@ export default function StickerStudioModal({
           await downloadSticker(
             rawStickerUrl,
             'gif',
-            { bg: bgMode },
+            { bg: bgMode, size: stickerSize },
             `${pack.id}-sticker`
           );
           onCopied(
-            'Đã tải file Sticker Động (.GIF)! Bạn có thể kéo thả file này vào Zalo / Messenger.'
+            `Đã tải file Sticker Động .GIF (${stickerSize}px)! Bạn có thể gửi vào Zalo / Messenger.`
           );
         } else {
           await handleCopyPng();
         }
       } else {
-        onCopied('Đã mở bảng chia sẻ sang Zalo / Messenger!');
+        onCopied(`Đã mở bảng chia sẻ (${stickerSize}px) sang Zalo / Messenger!`);
       }
     } catch (err: any) {
       if (err?.name !== 'AbortError') {
@@ -194,17 +200,25 @@ export default function StickerStudioModal({
           captionColor,
           captionPosition,
           addWhiteStroke,
-          size: format === 'gif' ? 360 : 512,
+          size: stickerSize,
         },
         `sigstick-${pack.id}`
       );
-      onCopied(`Đã tải xuống sticker định dạng .${format.toUpperCase()}!`);
+      onCopied(`Đã tải xuống sticker định dạng .${format.toUpperCase()} (${stickerSize}px)!`);
     } catch (err: any) {
       alert(err?.message || 'Lỗi khi tải xuống sticker');
     } finally {
       setIsDownloading(false);
     }
   };
+
+  // Visual preview size in simulated chat box so user sees realistic Zalo Mobile proportion
+  const previewDimensionClass =
+    stickerSize === 180
+      ? 'w-28 h-28 sm:w-32 sm:h-32'
+      : stickerSize === 220
+        ? 'w-36 h-36 sm:w-40 sm:h-40'
+        : 'w-44 h-44 sm:w-48 sm:h-48';
 
   return (
     <div
@@ -228,7 +242,7 @@ export default function StickerStudioModal({
             </div>
             <div className="min-w-0">
               <h3 className="font-bold text-sm sm:text-base text-slate-800 truncate">
-                Sticker Studio & Tách nền
+                Sticker Studio & Chỉnh cỡ Mobile
               </h3>
               <p className="text-[11px] text-slate-500 truncate">
                 Bộ: <span className="text-slate-700 font-medium">{pack.title}</span>
@@ -330,9 +344,9 @@ export default function StickerStudioModal({
               </div>
             </div>
 
-            {/* Simulated Chat Canvas (Compact on Mobile so actions stay visible) */}
+            {/* Simulated Chat Canvas (Shows realistic Zalo Mobile sticker size) */}
             <div
-              className={`relative rounded-2xl p-4 min-h-[200px] sm:min-h-[250px] flex flex-col items-center justify-center transition-colors overflow-hidden border ${
+              className={`relative rounded-2xl p-4 min-h-[190px] sm:min-h-[240px] flex flex-col items-center justify-center transition-colors overflow-hidden border ${
                 chatPreviewTheme === 'zalo'
                   ? 'bg-[#ebecf0] border-slate-300 text-slate-800'
                   : chatPreviewTheme === 'messenger-dark'
@@ -342,11 +356,13 @@ export default function StickerStudioModal({
             >
               <div className="absolute top-2.5 left-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-900/65 text-white backdrop-blur-xs">
                 <MessageCircle className="w-3 h-3 text-sky-300" />
-                {chatPreviewTheme === 'checker'
-                  ? 'Đã tách nền (Không background)'
-                  : chatPreviewTheme === 'zalo'
-                    ? 'Khung chat Zalo Sáng'
-                    : 'Khung chat Zalo / Messenger Tối'}
+                <span>
+                  {chatPreviewTheme === 'checker'
+                    ? `Tách nền • ${stickerSize}x${stickerSize}px`
+                    : chatPreviewTheme === 'zalo'
+                      ? `Zalo Sáng • ${stickerSize}x${stickerSize}px`
+                      : `Nền Tối • ${stickerSize}x${stickerSize}px`}
+                </span>
               </div>
 
               {activeTab === 'gif' && !caption.trim() && !addWhiteStroke ? (
@@ -366,7 +382,7 @@ export default function StickerStudioModal({
                     draggable
                     onLoad={() => setGifLoading(false)}
                     onError={() => setGifLoading(false)}
-                    className="w-40 h-40 sm:w-52 sm:h-52 object-contain cursor-grab active:cursor-grabbing select-all rounded-xl"
+                    className={`${previewDimensionClass} object-contain cursor-grab active:cursor-grabbing select-all rounded-xl transition-all duration-200`}
                     title="Kéo thả trực tiếp ảnh GIF này vào cửa sổ Zalo PC hoặc Messenger!"
                   />
                 </div>
@@ -383,7 +399,7 @@ export default function StickerStudioModal({
                       src={previewPngUrl}
                       alt={pack.title}
                       draggable
-                      className="w-40 h-40 sm:w-52 sm:h-52 object-contain cursor-grab active:cursor-grabbing rounded-xl"
+                      className={`${previewDimensionClass} object-contain cursor-grab active:cursor-grabbing rounded-xl transition-all duration-200`}
                       title="Kéo thả hoặc nhấn Copy PNG để dán vào Zalo / Messenger"
                     />
                   ) : (
@@ -391,7 +407,7 @@ export default function StickerStudioModal({
                     <img
                       src={rawStickerUrl}
                       alt={pack.title}
-                      className="w-40 h-40 sm:w-52 sm:h-52 object-contain"
+                      className={`${previewDimensionClass} object-contain transition-all duration-200`}
                     />
                   )}
                 </div>
@@ -400,9 +416,42 @@ export default function StickerStudioModal({
           </div>
 
           {/* Right Column: Customization Controls & Primary CTAs */}
-          <div className="lg:col-span-6 p-3.5 sm:p-5 flex flex-col justify-between space-y-4 bg-white">
-            <div className="space-y-3.5">
-              {/* 1. Background Removal Mode */}
+          <div className="lg:col-span-6 p-3.5 sm:p-5 flex flex-col justify-between space-y-3.5 bg-white">
+            <div className="space-y-3">
+              {/* 1. Sticker Size Selector (Mobile-friendly compact sizes) */}
+              <div>
+                <label className="flex items-center justify-between text-xs font-semibold text-slate-600 mb-1.5">
+                  <span className="flex items-center gap-1.5">
+                    <Maximize2 className="w-3.5 h-3.5 text-indigo-500" />
+                    Kích thước khi gửi Zalo / Messenger
+                  </span>
+                  <span className="text-[10px] font-medium text-indigo-600">
+                    Mặc định: Nhỏ gọn (180px)
+                  </span>
+                </label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {STICKER_SIZE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.size}
+                      type="button"
+                      onClick={() => {
+                        setStickerSize(opt.size);
+                        setDefaultStickerSize(opt.size);
+                      }}
+                      title={opt.desc}
+                      className={`py-2 px-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                        stickerSize === opt.size
+                          ? 'bg-indigo-50 border-indigo-400 text-indigo-700 shadow-2xs'
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      {opt.shortLabel}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 2. Background Removal Mode */}
               <div>
                 <label className="flex items-center justify-between text-xs font-semibold text-slate-600 mb-1.5">
                   <span className="flex items-center gap-1.5">
@@ -443,7 +492,7 @@ export default function StickerStudioModal({
                 </div>
               </div>
 
-              {/* 2. Meme Caption Input */}
+              {/* 3. Meme Caption Input */}
               <div>
                 <label className="flex items-center justify-between text-xs font-semibold text-slate-600 mb-1.5">
                   <span className="flex items-center gap-1.5">
@@ -483,7 +532,7 @@ export default function StickerStudioModal({
                 </div>
 
                 {/* Quick Captions Horizontal Scroll on Mobile */}
-                <div className="flex items-center gap-1.5 mt-2 overflow-x-auto no-scrollbar pb-0.5">
+                <div className="flex items-center gap-1.5 mt-1.5 overflow-x-auto no-scrollbar pb-0.5">
                   {QUICK_CAPTIONS.map((text) => (
                     <button
                       key={text}
@@ -504,7 +553,7 @@ export default function StickerStudioModal({
                 </div>
               </div>
 
-              {/* 3. White Die-Cut Stroke Toggle */}
+              {/* 4. White Die-Cut Stroke Toggle */}
               <button
                 type="button"
                 onClick={() => {
@@ -549,8 +598,8 @@ export default function StickerStudioModal({
                 )}
                 <span>
                   {copiedDone
-                    ? 'Đã Copy! Mở Zalo / Messenger và Dán'
-                    : 'Copy Sticker (Tự tách nền) — Dán ngay'}
+                    ? `Đã Copy (${stickerSize}px)! Mở Zalo và Dán`
+                    : `Copy Sticker (${stickerSize}px) — Dán ngay`}
                 </span>
               </button>
 
@@ -567,7 +616,7 @@ export default function StickerStudioModal({
                   ) : (
                     <Share2 className="w-3.5 h-3.5 text-violet-600" />
                   )}
-                  <span>Gửi GIF qua App</span>
+                  <span>Gửi GIF ({stickerSize}px)</span>
                 </button>
 
                 <button
@@ -583,7 +632,7 @@ export default function StickerStudioModal({
 
               {/* Download Row */}
               <div className="flex items-center justify-between gap-2 pt-1">
-                <span className="text-[11px] text-slate-500">Tải về máy:</span>
+                <span className="text-[11px] text-slate-500">Tải về ({stickerSize}px):</span>
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
