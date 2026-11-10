@@ -1,7 +1,13 @@
 import JSZip from 'jszip';
 import { StickerPack, normalizeCdnUrl } from './sigstick';
 
-export type BgMode = 'transparent' | 'zalo-light' | 'zalo-dark' | 'white' | 'dark';
+export type BgMode =
+  | 'zalo-mobile'
+  | 'zalo-light'
+  | 'zalo-dark'
+  | 'transparent'
+  | 'white'
+  | 'dark';
 export type ExportFormat = 'png' | 'gif' | 'webp';
 export type StickerSizePreset = 180 | 220 | 320;
 
@@ -32,30 +38,32 @@ export const STICKER_SIZE_OPTIONS: Array<{
 ];
 
 export const BG_MODE_COLORS: Record<Exclude<BgMode, 'transparent'>, string> = {
+  'zalo-mobile': '#e2e9f1',
   'zalo-light': '#ebecf0',
   'zalo-dark': '#22262b',
   white: '#ffffff',
   dark: '#1e293b',
 };
 
-const COPY_BG_STORAGE_KEY = 'sigstick_vn_copy_bg_v2';
+const COPY_BG_STORAGE_KEY = 'sigstick_vn_copy_bg_v3';
 const STICKER_SIZE_STORAGE_KEY = 'sigstick_vn_sticker_size_v1';
 
 export function getDefaultCopyBgMode(): BgMode {
-  if (typeof window === 'undefined') return 'transparent';
+  if (typeof window === 'undefined') return 'zalo-mobile';
   try {
     const saved = localStorage.getItem(COPY_BG_STORAGE_KEY) as BgMode | null;
     if (
-      saved === 'transparent' ||
+      saved === 'zalo-mobile' ||
       saved === 'zalo-light' ||
       saved === 'zalo-dark' ||
+      saved === 'transparent' ||
       saved === 'white' ||
       saved === 'dark'
     ) {
       return saved;
     }
   } catch {}
-  return 'transparent';
+  return 'zalo-mobile';
 }
 
 export function setDefaultCopyBgMode(mode: BgMode): void {
@@ -83,6 +91,20 @@ export function setDefaultStickerSize(size: StickerSizePreset): void {
   } catch {}
 }
 
+/**
+ * Đảm bảo khi gửi sang Zalo luôn dùng nền tiệp màu khung chat Zalo (#e2e9f1 trên Mobile hoặc #ebecf0 trên PC)
+ * để tuyệt đối không bao giờ bị Zalo biến phần trong suốt thành nền đen hoặc nền trắng.
+ */
+export function resolveZaloSafeBgMode(bg?: BgMode): BgMode {
+  if (bg === 'zalo-mobile' || bg === 'zalo-light' || bg === 'zalo-dark') {
+    return bg;
+  }
+  if (typeof window !== 'undefined' && window.innerWidth >= 768 && bg === 'transparent') {
+    return 'zalo-mobile';
+  }
+  return 'zalo-mobile';
+}
+
 export interface StickerCustomizeOptions {
   bg?: BgMode;
   caption?: string;
@@ -95,8 +117,9 @@ export interface StickerCustomizeOptions {
 export function getConvertedStickerUrl(
   stickerUrl: string,
   format: ExportFormat = 'png',
-  bg: BgMode = 'transparent',
-  size?: number
+  bg: BgMode = 'zalo-mobile',
+  size?: number,
+  addWhiteStroke = true
 ): string {
   const finalSize = size ?? getDefaultStickerSize();
   const cleanUrl = normalizeCdnUrl(stickerUrl);
@@ -105,37 +128,49 @@ export function getConvertedStickerUrl(
     format: format === 'webp' ? 'raw' : format,
     bg,
     size: String(finalSize),
+    stroke: addWhiteStroke ? '1' : '0',
   });
   return `/api/sticker/convert?${params.toString()}`;
 }
 
 /**
- * Vẽ sticker lên Canvas (hỗ trợ thêm viền trắng Sticker, nền trùng màu khung chat Zalo và chữ Caption Meme)
- * Trả về PNG Blob với kích thước nhỏ gọn chuẩn Sticker Mobile để copy vào Clipboard hoặc tải về
+ * Xuất Sticker PNG với kích thước chuẩn Mobile, tự động tách nền, tạo viền trắng Die-Cut và chèn chữ Meme (nếu có)
  */
 export async function renderCustomizedPngBlob(
   stickerUrl: string,
   options: StickerCustomizeOptions = {}
 ): Promise<Blob> {
   const {
-    bg = 'transparent',
+    bg = getDefaultCopyBgMode(),
     caption = '',
     captionColor = '#ffffff',
     captionPosition = 'bottom',
-    addWhiteStroke = false,
+    addWhiteStroke = true,
     size = getDefaultStickerSize(),
   } = options;
 
-  // Nếu không có tùy chỉnh chữ hoặc viền trắng, gọi trực tiếp API convert PNG đã tối ưu size
-  if (!caption.trim() && !addWhiteStroke) {
-    const apiUrl = getConvertedStickerUrl(stickerUrl, 'png', bg, size);
+  // Nếu không chèn chữ tùy chỉnh, gọi trực tiếp API convert PNG trên server (đã bao gồm tự tách nền + viền Die-Cut + chống nền đen/trắng)
+  if (!caption.trim()) {
+    const apiUrl = getConvertedStickerUrl(
+      stickerUrl,
+      'png',
+      bg,
+      size,
+      addWhiteStroke
+    );
     const res = await fetch(apiUrl);
     if (!res.ok) throw new Error('Không thể chuyển đổi sticker sang PNG');
     return await res.blob();
   }
 
-  // Tải ảnh PNG gốc (trong suốt) từ proxy để vẽ lên Canvas
-  const basePngUrl = getConvertedStickerUrl(stickerUrl, 'png', 'transparent', size);
+  // Khi có chèn chữ Meme: tải ảnh PNG đã tách nền (trong suốt, chưa viền) để canh bố cục với dòng chữ trên Canvas
+  const basePngUrl = getConvertedStickerUrl(
+    stickerUrl,
+    'png',
+    'transparent',
+    size,
+    false
+  );
   const res = await fetch(basePngUrl);
   if (!res.ok) throw new Error('Không thể tải ảnh sticker');
   const blob = await res.blob();
@@ -147,17 +182,17 @@ export async function renderCustomizedPngBlob(
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas 2D không khả dụng');
 
-  // 1. Vẽ nền toàn khung nếu chọn nền Zalo (Light/Dark), Trắng hoặc Tối
+  // 1. Vẽ nền toàn khung nếu chọn nền Zalo (Mobile/PC/Dark), Trắng hoặc Tối
   if (bg !== 'transparent') {
     ctx.save();
-    ctx.fillStyle = BG_MODE_COLORS[bg] || '#ebecf0';
+    ctx.fillStyle = BG_MODE_COLORS[bg] || '#e2e9f1';
     ctx.fillRect(0, 0, size, size);
     ctx.restore();
   }
 
-  // 2. Tính toán vùng vẽ sticker (chừa chỗ nếu có caption)
+  // 2. Tính toán vùng vẽ sticker (chừa chỗ cho caption)
   const hasCaption = caption.trim().length > 0;
-  const padding = Math.round(size * 0.05);
+  const padding = Math.round(size * 0.06);
   const captionSpace = hasCaption ? Math.round(size * 0.16) : 0;
   const availW = size - padding * 2;
   const availH = size - padding * 2 - captionSpace;
@@ -171,11 +206,11 @@ export async function renderCustomizedPngBlob(
       ? Math.round(padding + captionSpace + (availH - drawH) / 2)
       : Math.round(padding + (availH - drawH) / 2);
 
-  // 3. Nếu bật viền trắng (White Die-Cut Sticker Stroke)
+  // 3. Vẽ viền trắng Die-Cut quanh nhân vật
   if (addWhiteStroke) {
     ctx.save();
-    const strokeRadius = Math.max(2, Math.round(size * 0.015));
-    const diag = Math.max(1, Math.round(strokeRadius * 0.7));
+    const strokeRadius = Math.max(2, Math.round(size * 0.017));
+    const diag = Math.max(1, Math.round(strokeRadius * 0.72));
     const strokeOffsets = [
       [-strokeRadius, 0],
       [strokeRadius, 0],
@@ -196,8 +231,8 @@ export async function renderCustomizedPngBlob(
       offCtx.fillStyle = '#ffffff';
       offCtx.fillRect(0, 0, drawW, drawH);
 
-      ctx.shadowColor = 'rgba(0,0,0,0.2)';
-      ctx.shadowBlur = Math.max(4, Math.round(size * 0.025));
+      ctx.shadowColor = 'rgba(15, 23, 42, 0.18)';
+      ctx.shadowBlur = Math.max(3, Math.round(size * 0.02));
       for (const [ox, oy] of strokeOffsets) {
         ctx.drawImage(offCanvas, drawX + ox, drawY + oy);
       }
@@ -208,7 +243,7 @@ export async function renderCustomizedPngBlob(
   // 4. Vẽ hình sticker chính
   ctx.drawImage(bitmap, drawX, drawY, drawW, drawH);
 
-  // 5. Vẽ chữ Caption Meme nếu có (tự động tỉ lệ theo size)
+  // 5. Vẽ chữ Caption Meme nếu có
   if (hasCaption) {
     ctx.save();
     const text = caption.trim();
@@ -254,7 +289,7 @@ export async function renderCustomizedPngBlob(
 }
 
 /**
- * Copy Sticker dưới dạng PNG vào Clipboard (hỗ trợ cả Chrome, Edge, Safari iOS/macOS)
+ * Copy Sticker dưới dạng PNG vào Clipboard (hỗ trợ Chrome, Edge, Safari iOS/macOS)
  */
 export async function copyStickerToClipboard(
   stickerUrl: string,
@@ -268,9 +303,9 @@ export async function copyStickerToClipboard(
     ...options,
     bg: options.bg ?? getDefaultCopyBgMode(),
     size: options.size ?? getDefaultStickerSize(),
+    addWhiteStroke: options.addWhiteStroke ?? true,
   };
 
-  // Sử dụng Promise trong ClipboardItem để tương thích cả Safari iOS lẫn Chrome/Edge
   const pngPromise = renderCustomizedPngBlob(stickerUrl, finalOptions);
   const item = new ClipboardItem({
     'image/png': pngPromise,
@@ -285,9 +320,11 @@ export async function shareStickerViaNativeSheet(
   stickerUrl: string,
   format: ExportFormat = 'png',
   options: StickerCustomizeOptions = {},
-  title = 'Sticker'
+  title = 'Sticker Zalo'
 ): Promise<'shared' | 'unsupported'> {
   const targetSize = options.size ?? getDefaultStickerSize();
+  const targetBg = options.bg ?? getDefaultCopyBgMode();
+  const targetStroke = options.addWhiteStroke ?? true;
   let blob: Blob;
   let ext = format;
   let mime = 'image/png';
@@ -296,8 +333,9 @@ export async function shareStickerViaNativeSheet(
     const gifUrl = getConvertedStickerUrl(
       stickerUrl,
       'gif',
-      options.bg || 'transparent',
-      targetSize
+      targetBg,
+      targetSize,
+      targetStroke
     );
     const res = await fetch(gifUrl);
     if (!res.ok) throw new Error('Không thể chuyển đổi sang GIF');
@@ -307,13 +345,17 @@ export async function shareStickerViaNativeSheet(
   } else {
     blob = await renderCustomizedPngBlob(stickerUrl, {
       ...options,
+      bg: targetBg,
       size: targetSize,
+      addWhiteStroke: targetStroke,
     });
     ext = 'png';
     mime = 'image/png';
   }
 
-  const file = new File([blob], `sigstick-${Date.now()}.${ext}`, { type: mime });
+  const file = new File([blob], `sticker-zalo-${Date.now()}.${ext}`, {
+    type: mime,
+  });
 
   if (
     typeof navigator !== 'undefined' &&
@@ -331,27 +373,104 @@ export async function shareStickerViaNativeSheet(
 }
 
 /**
+ * Chia sẻ chuyên biệt sang Zalo (Chuẩn kích thước Mobile 180px, tự tách nền, viền trắng Die-Cut, nền tiệp khung chat Zalo không bị đen/trắng, GIF hoạt động 100%)
+ */
+export async function shareStickerToZalo(
+  stickerUrl: string,
+  options: StickerCustomizeOptions & { preferGif?: boolean } = {},
+  title = 'Sticker Zalo'
+): Promise<'shared' | 'copied' | 'downloaded'> {
+  const safeBg = resolveZaloSafeBgMode(options.bg ?? getDefaultCopyBgMode());
+  const targetSize = options.size ?? getDefaultStickerSize();
+  const targetStroke = options.addWhiteStroke ?? true;
+  const hasCaption = Boolean(options.caption && options.caption.trim().length > 0);
+  const format: 'gif' | 'png' =
+    options.preferGif && !hasCaption ? 'gif' : 'png';
+
+  const shareResult = await shareStickerViaNativeSheet(
+    stickerUrl,
+    format,
+    {
+      ...options,
+      bg: safeBg,
+      size: targetSize,
+      addWhiteStroke: targetStroke,
+    },
+    title
+  );
+
+  if (shareResult === 'shared') {
+    return 'shared';
+  }
+
+  // Fallback trên máy tính (PC) khi trình duyệt không hỗ trợ mở Share Sheet cho file:
+  if (format === 'gif') {
+    await downloadSticker(
+      stickerUrl,
+      'gif',
+      {
+        ...options,
+        bg: safeBg,
+        size: targetSize,
+        addWhiteStroke: targetStroke,
+      },
+      'sticker-zalo'
+    );
+    return 'downloaded';
+  }
+
+  try {
+    await copyStickerToClipboard(stickerUrl, {
+      ...options,
+      bg: safeBg,
+      size: targetSize,
+      addWhiteStroke: targetStroke,
+    });
+    return 'copied';
+  } catch {
+    await downloadSticker(
+      stickerUrl,
+      'png',
+      {
+        ...options,
+        bg: safeBg,
+        size: targetSize,
+        addWhiteStroke: targetStroke,
+      },
+      'sticker-zalo'
+    );
+    return 'downloaded';
+  }
+}
+
+/**
  * Tải xuống 1 sticker đã chuyển đổi định dạng (PNG / GIF / WebP)
  */
 export async function downloadSticker(
   stickerUrl: string,
   format: ExportFormat = 'png',
   options: StickerCustomizeOptions = {},
-  filenamePrefix = 'sticker'
+  filenamePrefix = 'sticker-zalo'
 ): Promise<void> {
   const targetSize = options.size ?? getDefaultStickerSize();
+  const targetBg = options.bg ?? getDefaultCopyBgMode();
+  const targetStroke = options.addWhiteStroke ?? true;
+
   let blob: Blob;
   if (format === 'png') {
     blob = await renderCustomizedPngBlob(stickerUrl, {
       ...options,
+      bg: targetBg,
       size: targetSize,
+      addWhiteStroke: targetStroke,
     });
   } else {
     const url = getConvertedStickerUrl(
       stickerUrl,
       format,
-      options.bg || 'transparent',
-      targetSize
+      targetBg,
+      targetSize,
+      targetStroke
     );
     const res = await fetch(url);
     if (!res.ok) throw new Error('Không thể tải xuống sticker');
@@ -369,7 +488,7 @@ export async function downloadSticker(
 }
 
 /**
- * Tải xuống toàn bộ bộ Sticker dưới dạng file .ZIP (đã tự động chuyển sang PNG hoặc GIF để import vào Zalo/Messenger)
+ * Tải xuống toàn bộ bộ Sticker dưới dạng file .ZIP (đã tự động chuyển sang PNG hoặc GIF chuẩn Zalo)
  */
 export async function downloadPackZip(
   pack: StickerPack,
@@ -384,8 +503,8 @@ export async function downloadPackZip(
   const total = pack.stickers.length;
   let completed = 0;
   const targetSize = getDefaultStickerSize();
+  const targetBg = getDefaultCopyBgMode();
 
-  // Tải song song theo từng cụm 4 ảnh để tránh nghẽn mạng
   const concurrency = 4;
   for (let i = 0; i < total; i += concurrency) {
     const batch = pack.stickers.slice(i, i + concurrency);
@@ -396,8 +515,9 @@ export async function downloadPackZip(
           const convertUrl = getConvertedStickerUrl(
             sticker.url,
             format,
-            'transparent',
-            targetSize
+            targetBg,
+            targetSize,
+            true
           );
           const res = await fetch(convertUrl);
           if (res.ok) {

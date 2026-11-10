@@ -24,6 +24,7 @@ import {
   Trash2,
   Globe,
   Maximize2,
+  Share2,
 } from "lucide-react";
 import {
   StickerPack,
@@ -45,6 +46,7 @@ import {
   setDefaultCopyBgMode,
   getDefaultStickerSize,
   setDefaultStickerSize,
+  shareStickerToZalo,
 } from "@/lib/stickerActions";
 import PackDetailModal from "@/components/PackDetailModal";
 import StickerStudioModal from "@/components/StickerStudioModal";
@@ -99,7 +101,7 @@ export default function SigStickHomePage() {
   );
   const [savedPacks, setSavedPacks] = useState<StickerPack[]>([]);
   const [recentStickers, setRecentStickers] = useState<SavedStickerEntry[]>([]);
-  const [copyBgMode, setCopyBgMode] = useState<BgMode>("transparent");
+  const [copyBgMode, setCopyBgMode] = useState<BgMode>("zalo-mobile");
   const [stickerSize, setStickerSize] = useState<StickerSizePreset>(180);
 
   // Modals & Active Selections
@@ -158,15 +160,21 @@ export default function SigStickHomePage() {
   }, []);
 
   const handleToggleCopyBgMode = () => {
-    const order: BgMode[] = ["transparent", "zalo-light", "zalo-dark"];
+    const order: BgMode[] = [
+      "zalo-mobile",
+      "zalo-light",
+      "zalo-dark",
+      "transparent",
+    ];
     const nextIdx = (order.indexOf(copyBgMode) + 1) % order.length;
     const next = order[nextIdx];
     setCopyBgMode(next);
     setDefaultCopyBgMode(next);
     const labelMap: Record<BgMode, string> = {
-      transparent: "Tự động tách nền (Trong suốt 100%, không background)",
-      "zalo-light": "Tiệp nền Zalo Sáng (#ebecf0)",
-      "zalo-dark": "Tiệp nền Zalo Tối (#22262b)",
+      "zalo-mobile": "Nền Zalo Điện thoại (#e2e9f1 • Không bao giờ bị nền đen/trắng)",
+      "zalo-light": "Nền Zalo PC Sáng (#ebecf0)",
+      "zalo-dark": "Nền Zalo Tối (#22262b)",
+      transparent: "Tự tách nền (Trong suốt)",
       white: "Nền trắng",
       dark: "Nền tối",
     };
@@ -441,7 +449,7 @@ export default function SigStickHomePage() {
     setActiveQuery(raw);
   };
 
-  // Quick 1-click copy on pack preview card
+  // Quick 1-click copy / share on pack preview card
   const handleQuickPreviewCopy = async (
     e: React.MouseEvent,
     pack: StickerPack,
@@ -454,30 +462,36 @@ export default function SigStickHomePage() {
       await copyStickerToClipboard(sticker.url, {
         bg: copyBgMode,
         size: stickerSize,
-        addWhiteStroke: false,
+        addWhiteStroke: true,
       });
       recordRecentSticker(sticker, pack);
       setCopiedPreviewKey(key);
       showToast(
-        copyBgMode === "transparent"
-          ? `Đã tách nền & Copy Sticker (${stickerSize}px)! Dán vào Zalo ngay.`
-          : copyBgMode === "zalo-light"
-          ? `Đã Copy Sticker (${stickerSize}px, Zalo Sáng)!`
-          : `Đã Copy Sticker (${stickerSize}px, Zalo Tối)!`,
+        `Đã Copy Sticker chuẩn Zalo (${stickerSize}px • Có viền • Không nền đen/trắng)!`,
         "success"
       );
       setTimeout(() => {
         setCopiedPreviewKey((prev) => (prev === key ? null : prev));
       }, 2000);
     } catch {
-      showToast(
-        "Mở Studio để tải hoặc chia sẻ trực tiếp qua điện thoại!",
-        "info"
-      );
-      setStudioTarget({
-        sticker,
-        pack,
-      });
+      try {
+        await shareStickerToZalo(
+          sticker.url,
+          {
+            bg: copyBgMode,
+            size: stickerSize,
+            addWhiteStroke: true,
+            preferGif: isPackAnimated(pack),
+          },
+          pack.title
+        );
+        recordRecentSticker(sticker, pack);
+      } catch {
+        setStudioTarget({
+          sticker,
+          pack,
+        });
+      }
     } finally {
       setCopyingPreviewKey(null);
     }
@@ -523,7 +537,7 @@ export default function SigStickHomePage() {
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 hidden sm:block">
-                Tự động tách nền • Cỡ chuẩn Zalo Mobile 1 chạm
+                Chuẩn GIF & PNG Zalo • Cỡ 180px • Có viền • Không nền đen/trắng
               </p>
             </div>
           </div>
@@ -606,31 +620,37 @@ export default function SigStickHomePage() {
 
             <button
               onClick={handleToggleCopyBgMode}
-              title="Chế độ tách nền tự động khi Copy / Gửi Sticker"
+              title="Chế độ nền chống đen/trắng khi gửi Sticker qua Zalo"
               className="min-h-[38px] flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-teal-50/90 hover:bg-teal-100/80 text-teal-700 border border-teal-200/90 text-xs font-semibold transition cursor-pointer active:scale-95"
             >
               <span
                 className={`w-2.5 h-2.5 rounded-full border shrink-0 ${
-                  copyBgMode === "transparent"
-                    ? "bg-white border-dashed border-teal-500"
+                  copyBgMode === "zalo-mobile"
+                    ? "bg-[#e2e9f1] border-sky-500"
                     : copyBgMode === "zalo-light"
                     ? "bg-[#ebecf0] border-slate-400"
-                    : "bg-[#22262b] border-slate-600"
+                    : copyBgMode === "zalo-dark"
+                    ? "bg-[#22262b] border-slate-600"
+                    : "bg-white border-dashed border-teal-500"
                 }`}
               />
               <span className="hidden md:inline">
-                {copyBgMode === "transparent"
-                  ? "Tự tách nền"
+                {copyBgMode === "zalo-mobile"
+                  ? "Zalo ĐT (#e2e9f1)"
                   : copyBgMode === "zalo-light"
-                  ? "Zalo Sáng"
-                  : "Zalo Tối"}
+                  ? "Zalo PC"
+                  : copyBgMode === "zalo-dark"
+                  ? "Zalo Tối"
+                  : "Trong suốt"}
               </span>
               <span className="md:hidden text-[11px]">
-                {copyBgMode === "transparent"
-                  ? "Tách nền"
+                {copyBgMode === "zalo-mobile"
+                  ? "Zalo ĐT"
                   : copyBgMode === "zalo-light"
-                  ? "Zalo Sáng"
-                  : "Zalo Tối"}
+                  ? "Zalo PC"
+                  : copyBgMode === "zalo-dark"
+                  ? "Zalo Tối"
+                  : "Trong suốt"}
               </span>
             </button>
 
@@ -1176,17 +1196,29 @@ export default function SigStickHomePage() {
                   : recentStickers
                 ).map((entry) => {
                   const thumbUrl = getThumbnailUrl(entry.sticker.url, 256);
+                  const animated = isPackAnimated(entry.pack);
                   return (
                     <div
                       key={entry.key}
-                      className="group relative rounded-2xl bg-white border border-slate-200/80 hover:border-indigo-300 p-2.5 flex flex-col items-center justify-between gap-2 transition shadow-2xs"
+                      className="group relative rounded-2xl bg-[#e2e9f1]/60 hover:bg-[#e2e9f1] border border-slate-200/80 hover:border-[#0068ff]/50 p-2.5 flex flex-col items-center justify-between gap-2 transition shadow-2xs"
                     >
                       <div
                         onClick={async () => {
                           try {
-                            await copyStickerToClipboard(entry.sticker.url);
+                            const res = await shareStickerToZalo(
+                              entry.sticker.url,
+                              {
+                                bg: copyBgMode,
+                                size: stickerSize,
+                                addWhiteStroke: true,
+                                preferGif: animated,
+                              },
+                              entry.pack.title
+                            );
                             showToast(
-                              "Đã Copy PNG! Dán vào Zalo / Messenger ngay.",
+                              res === "shared"
+                                ? `Đã mở Chia sẻ Zalo (${animated ? "GIF" : "PNG"} • ${stickerSize}px)!`
+                                : `Đã Copy Sticker chuẩn Zalo (${stickerSize}px)!`,
                               "success"
                             );
                           } catch {
@@ -1201,28 +1233,39 @@ export default function SigStickHomePage() {
                         <img
                           src={thumbUrl}
                           alt={entry.pack.title}
-                          className="w-full h-full object-contain group-hover:scale-105 transition"
+                          className="w-full h-full object-contain group-hover:scale-105 transition drop-shadow-[0_0_2px_#fff]"
                         />
                       </div>
 
-                      <div className="w-full flex items-center justify-between gap-1 pt-1.5 border-t border-slate-100">
+                      <div className="w-full flex items-center justify-between gap-1 pt-1.5 border-t border-slate-200/70">
                         <button
                           onClick={async () => {
                             try {
-                              await copyStickerToClipboard(entry.sticker.url);
+                              const res = await shareStickerToZalo(
+                                entry.sticker.url,
+                                {
+                                  bg: copyBgMode,
+                                  size: stickerSize,
+                                  addWhiteStroke: true,
+                                  preferGif: animated,
+                                },
+                                entry.pack.title
+                              );
                               showToast(
-                                "Đã Copy PNG vào Clipboard!",
+                                res === "shared"
+                                  ? `Đã mở Chia sẻ Zalo (${animated ? "GIF" : "PNG"} • ${stickerSize}px)!`
+                                  : `Đã Copy Sticker chuẩn Zalo (${stickerSize}px)!`,
                                 "success"
                               );
                             } catch {
-                              showToast("Không thể Copy tự động", "error");
+                              showToast("Không thể chia sẻ tự động", "error");
                             }
                           }}
-                          title="Copy PNG"
-                          className="flex-1 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white text-[10px] font-bold flex items-center justify-center gap-1 transition cursor-pointer"
+                          title="Chia sẻ qua Zalo (Chuẩn GIF/PNG + Cỡ 180px + Có viền)"
+                          className="flex-1 py-1 rounded-lg bg-[#0068ff] hover:bg-[#0057d9] text-white text-[10px] font-bold flex items-center justify-center gap-1 transition cursor-pointer"
                         >
-                          <Copy className="w-3 h-3" />
-                          Copy
+                          <Share2 className="w-2.5 h-2.5" />
+                          Zalo
                         </button>
                         <button
                           onClick={() =>
@@ -1232,7 +1275,7 @@ export default function SigStickHomePage() {
                             })
                           }
                           title="Mở Studio / Tải GIF"
-                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 cursor-pointer"
+                          className="p-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-600 cursor-pointer"
                         >
                           <Wand2 className="w-3 h-3" />
                         </button>
@@ -1241,7 +1284,7 @@ export default function SigStickHomePage() {
                             toggleFavoriteSticker(entry.sticker, entry.pack)
                           }
                           title="Bỏ yêu thích"
-                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-rose-500 cursor-pointer"
+                          className="p-1.5 rounded-lg bg-white hover:bg-rose-50 text-rose-500 cursor-pointer"
                         >
                           <Heart
                             className={`w-3 h-3 ${
