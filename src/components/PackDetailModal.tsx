@@ -13,7 +13,7 @@ import {
   Film,
   Loader2,
   ExternalLink,
-  Zap,
+  Layers,
 } from 'lucide-react';
 import {
   StickerItem,
@@ -95,7 +95,7 @@ export default function PackDetailModal({
         if (res === 'unsupported') {
           await downloadSticker(rawUrl, 'gif', { bg: copyBgMode }, `sticker-${pack.id}`);
           onToast(
-            'Đã chuyển sang .GIF động và tải về! Hãy kéo thả file GIF vào Zalo / Messenger.'
+            'Đã chuyển sang .GIF động và tải về! Hãy gửi file GIF vào Zalo / Messenger.'
           );
         } else {
           onToast('Đã mở bảng chia sẻ GIF sang Zalo / Messenger!');
@@ -119,10 +119,10 @@ export default function PackDetailModal({
       setCopiedUrl(rawUrl);
       onToast(
         copyBgMode === 'transparent'
-          ? '✨ Đã tự động tách nền & copy Sticker (không background)! Nhấn Ctrl+V ngay!'
+          ? 'Đã tự tách nền & copy Sticker! Dán vào Zalo/Messenger ngay.'
           : copyBgMode === 'zalo-light'
-            ? '✅ Đã copy Sticker (tiệp nền Zalo sáng)! Nhấn Ctrl+V ngay!'
-            : '✅ Đã copy Sticker (tiệp nền Zalo tối)! Nhấn Ctrl+V ngay!'
+            ? 'Đã copy Sticker (tiệp nền Zalo sáng)!'
+            : 'Đã copy Sticker (tiệp nền Zalo tối)!'
       );
       setTimeout(() => setCopiedUrl((prev) => (prev === rawUrl ? null : prev)), 2000);
     } catch {
@@ -140,7 +140,7 @@ export default function PackDetailModal({
         setZipProgress({ current, total });
       });
       onToast(
-        `Đã tải trọn bộ "${pack.title}" (${pack.stickers.length} sticker định dạng .${format.toUpperCase()})!`
+        `Đã tải trọn bộ "${pack.title}" (${pack.stickers.length} sticker .${format.toUpperCase()})!`
       );
     } catch {
       onToast('Không thể tạo file ZIP lúc này.');
@@ -154,17 +154,22 @@ export default function PackDetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-slate-950/75 backdrop-blur-sm p-0 sm:p-4"
+      className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-slate-900/45 backdrop-blur-xs p-0 sm:p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-5xl max-h-[92vh] sm:max-h-[88vh] flex flex-col rounded-t-3xl sm:rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden text-slate-100"
+        className="w-full max-w-4xl max-h-[92dvh] sm:max-h-[88dvh] flex flex-col rounded-t-3xl sm:rounded-3xl bg-white border border-slate-200/90 shadow-2xl overflow-hidden text-slate-800"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header thông tin bộ Sticker */}
-        <div className="p-4 sm:p-6 border-b border-slate-800 bg-slate-900/95 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-800/90 border border-slate-700/70 p-2 shrink-0 flex items-center justify-center relative">
+        {/* Mobile Bottom-Sheet Handle */}
+        <div className="sm:hidden flex justify-center pt-2 pb-0.5 bg-white">
+          <div className="w-10 h-1 rounded-full bg-slate-200" />
+        </div>
+
+        {/* Compact Pack Header */}
+        <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-slate-200/80 bg-white flex items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl bg-slate-50 border border-slate-200/80 p-1.5 shrink-0 flex items-center justify-center relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={coverUrl}
@@ -177,45 +182,42 @@ export default function PackDetailModal({
                 className="w-full h-full object-contain"
               />
               {animated && (
-                <span className="absolute -bottom-1.5 -right-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-indigo-600 text-white shadow flex items-center gap-0.5">
+                <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-indigo-600 text-white shadow-xs flex items-center gap-0.5">
                   <Film className="w-2.5 h-2.5" />
-                  ĐỘNG
+                  GIF
                 </span>
               )}
             </div>
 
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg sm:text-xl font-bold text-white truncate">{pack.title}</h2>
-                {pack.locale?.en && pack.locale.en !== pack.title && (
-                  <span className="text-xs text-slate-400 truncate">({pack.locale.en})</span>
-                )}
-              </div>
-              <div className="flex items-center gap-3 text-xs text-slate-400 mt-1 flex-wrap">
-                <span>
-                  Tác giả: <strong className="text-slate-200">{pack.author || 'SigStick'}</strong>
+              <h2 className="text-base sm:text-lg font-bold text-slate-800 truncate">
+                {pack.title}
+              </h2>
+              <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5 flex-wrap">
+                <span className="truncate max-w-[140px] sm:max-w-none">
+                  {pack.author || 'SigStick'}
                 </span>
                 <span>•</span>
-                <span>{pack.stickers.length} stickers</span>
+                <span className="font-medium text-slate-600">{pack.stickers.length} hình</span>
                 {pack.download ? (
                   <>
                     <span>•</span>
-                    <span>{formatCount(pack.download)} lượt tải</span>
+                    <span>{formatCount(pack.download)} tải</span>
                   </>
                 ) : null}
               </div>
 
-              {/* Tags */}
+              {/* Scrollable Tags Row */}
               {pack.tags && pack.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {pack.tags.slice(0, 8).map((tag) => (
+                <div className="flex items-center gap-1 mt-1.5 overflow-x-auto no-scrollbar">
+                  {pack.tags.slice(0, 6).map((tag) => (
                     <button
                       key={tag}
                       onClick={() => {
                         onClose();
                         onSearchTag(tag);
                       }}
-                      className="px-2 py-0.5 rounded-full text-[11px] bg-slate-800 hover:bg-blue-600/20 text-slate-300 hover:text-blue-300 border border-slate-700/80 transition-colors"
+                      className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 border border-slate-200/70 transition-colors cursor-pointer"
                     >
                       #{tag}
                     </button>
@@ -225,37 +227,38 @@ export default function PackDetailModal({
             </div>
           </div>
 
-          {/* Cụm nút Lưu bộ, Tải ZIP & Đóng */}
-          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+          {/* Action Buttons: Save, ZIP, Close */}
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
               onClick={() => onToggleSavePack(pack)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold border flex items-center gap-1.5 transition-all cursor-pointer ${
+              aria-label={isSavedPack ? 'Bỏ lưu bộ' : 'Lưu bộ này'}
+              className={`min-h-[38px] px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold border flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 ${
                 isSavedPack
-                  ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
-                  : 'bg-slate-800 hover:bg-slate-750 border-slate-700 text-slate-200'
+                  ? 'bg-indigo-50 border-indigo-200 text-indigo-600'
+                  : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
               }`}
             >
-              <Bookmark className={`w-4 h-4 ${isSavedPack ? 'fill-amber-400 text-amber-400' : ''}`} />
-              <span>{isSavedPack ? 'Đã lưu bộ' : 'Lưu bộ này'}</span>
+              <Bookmark className={`w-4 h-4 ${isSavedPack ? 'fill-indigo-600 text-indigo-600' : ''}`} />
+              <span className="hidden sm:inline">{isSavedPack ? 'Đã lưu' : 'Lưu bộ'}</span>
             </button>
 
             <button
               type="button"
               onClick={() => handleDownloadAllZip('png')}
               disabled={zipDownloading !== null}
-              className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+              className="min-h-[38px] px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
               title="Tải trọn bộ ảnh PNG trong file ZIP"
             >
               {zipDownloading === 'png' ? (
-                <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
               ) : (
-                <Download className="w-4 h-4 text-blue-400" />
+                <Download className="w-3.5 h-3.5 text-indigo-600" />
               )}
-              <span>
+              <span className="text-[11px]">
                 {zipDownloading === 'png' && zipProgress
                   ? `${zipProgress.current}/${zipProgress.total}`
-                  : 'ZIP (PNG)'}
+                  : 'ZIP'}
               </span>
             </button>
 
@@ -264,18 +267,18 @@ export default function PackDetailModal({
                 type="button"
                 onClick={() => handleDownloadAllZip('gif')}
                 disabled={zipDownloading !== null}
-                className="px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-200 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                className="min-h-[38px] px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-violet-50 hover:bg-violet-100/80 border border-violet-200 text-violet-700 hidden sm:flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
                 title="Chuyển toàn bộ sang GIF động và nén ZIP"
               >
                 {zipDownloading === 'gif' ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-violet-600" />
                 ) : (
-                  <Film className="w-4 h-4 text-indigo-400" />
+                  <Film className="w-3.5 h-3.5 text-violet-600" />
                 )}
-                <span>
+                <span className="text-[11px]">
                   {zipDownloading === 'gif' && zipProgress
                     ? `${zipProgress.current}/${zipProgress.total}`
-                    : 'ZIP (.GIF)'}
+                    : 'ZIP GIF'}
                 </span>
               </button>
             )}
@@ -283,7 +286,7 @@ export default function PackDetailModal({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white"
+              className="min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 cursor-pointer"
               aria-label="Đóng"
             >
               <X className="w-5 h-5" />
@@ -291,102 +294,95 @@ export default function PackDetailModal({
           </div>
         </div>
 
-        {/* Thanh chọn chế độ Click 1-Chạm & Tách nền tự động */}
-        <div className="px-4 sm:px-6 py-2.5 bg-slate-950/80 border-b border-slate-800/80 flex flex-col gap-2">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-xs text-slate-300">
-              <Zap className="w-4 h-4 text-amber-400 shrink-0" />
-              <span className="font-medium">Khi bấm vào Sticker:</span>
-            </div>
+        {/* Compact Segmented Controls: Click Action & Background Removal */}
+        <div className="px-3.5 sm:px-6 py-2.5 bg-slate-50/90 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          {/* Segmented Click Action */}
+          <div className="grid grid-cols-3 sm:flex items-center gap-1 bg-slate-200/70 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setQuickClickMode('copy-png')}
+              className={`py-1.5 px-2.5 rounded-lg text-[11px] sm:text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                quickClickMode === 'copy-png'
+                  ? 'bg-white text-indigo-600 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Copy className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Copy PNG</span>
+            </button>
 
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <button
-                type="button"
-                onClick={() => setQuickClickMode('copy-png')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  quickClickMode === 'copy-png'
-                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30'
-                    : 'bg-slate-800/80 text-slate-400 hover:text-white'
-                }`}
-              >
-                <Copy className="w-3.5 h-3.5" />
-                Copy PNG (Tự tách nền)
-              </button>
+            <button
+              type="button"
+              onClick={() => setQuickClickMode('share-gif')}
+              className={`py-1.5 px-2.5 rounded-lg text-[11px] sm:text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                quickClickMode === 'share-gif'
+                  ? 'bg-white text-indigo-600 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Share2 className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Gửi GIF</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => setQuickClickMode('share-gif')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  quickClickMode === 'share-gif'
-                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/30'
-                    : 'bg-slate-800/80 text-slate-400 hover:text-white'
-                }`}
-              >
-                <Share2 className="w-3.5 h-3.5" />
-                Chuyển sang .GIF Động & Gửi
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setQuickClickMode('studio')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  quickClickMode === 'studio'
-                    ? 'bg-purple-600 text-white shadow-sm shadow-purple-500/30'
-                    : 'bg-slate-800/80 text-slate-400 hover:text-white'
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                Mở Studio (Chèn chữ Meme)
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setQuickClickMode('studio')}
+              className={`py-1.5 px-2.5 rounded-lg text-[11px] sm:text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                quickClickMode === 'studio'
+                  ? 'bg-white text-indigo-600 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Chế chữ</span>
+            </button>
           </div>
 
-          {/* Tùy chọn Tách nền không background */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-slate-800/60 text-xs">
-            <span className="text-slate-400 text-[11px]">
-              🪄 Xử lý nền khi gửi:
+          {/* Background Mode Pills */}
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+            <span className="text-[11px] text-slate-500 flex items-center gap-1 mr-1 shrink-0">
+              <Layers className="w-3 h-3 text-teal-600" />
+              Nền:
             </span>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {(
-                [
-                  {
-                    id: 'transparent',
-                    label: '✨ Tự động tách nền (Không background)',
-                    dot: 'bg-transparent border-dashed border-emerald-400',
-                  },
-                  {
-                    id: 'zalo-light',
-                    label: 'Tiệp nền Zalo Sáng',
-                    dot: 'bg-[#ebecf0] border-slate-400',
-                  },
-                  {
-                    id: 'zalo-dark',
-                    label: 'Tiệp nền Zalo Tối',
-                    dot: 'bg-[#22262b] border-slate-500',
-                  },
-                ] as const
-              ).map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => handleChangeCopyBgMode(item.id)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1.5 border transition-all cursor-pointer ${
-                    copyBgMode === item.id
-                      ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300'
-                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <span className={`w-2.5 h-2.5 rounded-full border ${item.dot}`} />
-                  {item.label}
-                </button>
-              ))}
-            </div>
+            {(
+              [
+                {
+                  id: 'transparent',
+                  label: 'Tự tách nền (Trong suốt)',
+                  dot: 'bg-white border-dashed border-teal-500',
+                },
+                {
+                  id: 'zalo-light',
+                  label: 'Zalo Sáng',
+                  dot: 'bg-[#ebecf0] border-slate-400',
+                },
+                {
+                  id: 'zalo-dark',
+                  label: 'Zalo Tối',
+                  dot: 'bg-[#22262b] border-slate-600',
+                },
+              ] as const
+            ).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => handleChangeCopyBgMode(item.id)}
+                className={`shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1.5 border transition-all cursor-pointer ${
+                  copyBgMode === item.id
+                    ? 'bg-teal-50 border-teal-300 text-teal-800 font-semibold'
+                    : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full border ${item.dot}`} />
+                {item.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Lưới danh sách toàn bộ Sticker trong bộ */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1">
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+        {/* Sticker Grid — 3 to 4 Columns on Mobile, Soft Cards */}
+        <div className="p-3 sm:p-5 overflow-y-auto flex-1 bg-[#f8fafc]">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3">
             {pack.stickers.map((sticker, index) => {
               const rawUrl = normalizeCdnUrl(sticker.url);
               const thumbUrl = getThumbnailUrl(sticker.url, 256);
@@ -399,37 +395,38 @@ export default function PackDetailModal({
                 <div
                   key={`${rawUrl}-${index}`}
                   onClick={() => handleQuickAction(sticker)}
-                  className={`group relative aspect-square rounded-2xl p-3 flex items-center justify-center cursor-pointer border transition-all select-none ${
+                  className={`group relative aspect-square rounded-2xl p-2.5 flex items-center justify-center cursor-pointer border transition-all select-none active:scale-95 ${
                     isCopied
-                      ? 'bg-emerald-500/15 border-emerald-500/60 scale-[0.98]'
-                      : 'bg-slate-800/50 hover:bg-slate-800 border-slate-800 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/5'
+                      ? 'bg-teal-50 border-teal-400 scale-[0.98]'
+                      : 'bg-white hover:bg-indigo-50/30 border-slate-200/80 hover:border-indigo-300 shadow-[0_1px_2px_rgba(15,23,42,0.03)]'
                   }`}
                 >
-                  {/* Emoji góc trái */}
+                  {/* Emoji Corner */}
                   {emojiStr && (
-                    <span className="absolute top-2 left-2 text-xs opacity-75 pointer-events-none">
+                    <span className="absolute top-1.5 left-2 text-[11px] opacity-70 pointer-events-none">
                       {emojiStr}
                     </span>
                   )}
 
-                  {/* Nút Yêu thích góc phải */}
+                  {/* Favorite Heart Button */}
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       onToggleFavoriteSticker(sticker, pack);
                     }}
-                    className={`absolute top-1.5 right-1.5 p-1.5 rounded-lg z-10 transition-all ${
+                    aria-label="Yêu thích"
+                    className={`absolute top-1 right-1 p-1.5 rounded-lg z-10 transition-all cursor-pointer ${
                       fav
-                        ? 'opacity-100 bg-rose-500/20 text-rose-400'
-                        : 'opacity-0 group-hover:opacity-100 bg-slate-900/80 text-slate-400 hover:text-rose-400'
+                        ? 'opacity-100 bg-rose-50 text-rose-500'
+                        : 'opacity-70 sm:opacity-0 group-hover:opacity-100 bg-white/80 text-slate-400 hover:text-rose-500'
                     }`}
                     title="Yêu thích"
                   >
                     <Heart className={`w-3.5 h-3.5 ${fav ? 'fill-rose-500 text-rose-500' : ''}`} />
                   </button>
 
-                  {/* Hình ảnh Sticker */}
+                  {/* Sticker Image */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={thumbUrl}
@@ -443,69 +440,60 @@ export default function PackDetailModal({
                     className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
                   />
 
-                  {/* Trạng thái đang Copy / Đã Copy */}
+                  {/* Copying / Copied Overlay */}
                   {(isCopying || isCopied) && (
-                    <div className="absolute inset-0 rounded-2xl bg-slate-950/75 backdrop-blur-[2px] flex flex-col items-center justify-center gap-1 p-2 text-center">
+                    <div className="absolute inset-0 rounded-2xl bg-white/90 backdrop-blur-[2px] flex flex-col items-center justify-center gap-1 p-2 text-center">
                       {isCopying ? (
                         <>
-                          <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
-                          <span className="text-[11px] font-semibold text-blue-200">
+                          <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
+                          <span className="text-[10px] font-semibold text-indigo-700">
                             Đang xử lý...
                           </span>
                         </>
                       ) : (
                         <>
-                          <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center">
-                            <Check className="w-5 h-5 text-emerald-400" />
+                          <div className="w-7 h-7 rounded-full bg-teal-100 border border-teal-300 flex items-center justify-center">
+                            <Check className="w-4 h-4 text-teal-600" />
                           </div>
-                          <span className="text-[11px] font-bold text-emerald-300">
-                            Đã Copy! Nhấn Ctrl+V
+                          <span className="text-[10px] font-bold text-teal-700">
+                            Đã Copy!
                           </span>
                         </>
                       )}
                     </div>
                   )}
 
-                  {/* Thanh công cụ phụ khi hover */}
-                  <div className="absolute inset-x-1.5 bottom-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-between gap-1 bg-slate-950/90 backdrop-blur-md px-2 py-1 rounded-xl border border-slate-700/80">
-                    <span className="text-[10px] font-semibold text-blue-300 truncate">
-                      {quickClickMode === 'copy-png'
-                        ? 'Bấm: Copy PNG'
-                        : quickClickMode === 'share-gif'
-                          ? 'Bấm: Gửi GIF'
-                          : 'Bấm: Studio'}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectStickerForStudio(sticker, pack);
-                      }}
-                      className="p-1 rounded-md bg-blue-600/30 hover:bg-blue-600 text-blue-200 hover:text-white transition-colors"
-                      title="Chỉnh sửa chữ / Xuất GIF trong Studio"
-                    >
-                      <Sparkles className="w-3 h-3" />
-                    </button>
-                  </div>
+                  {/* Quick Studio Button on Desktop Hover */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectStickerForStudio(sticker, pack);
+                    }}
+                    aria-label="Mở Studio chế chữ"
+                    className="hidden sm:flex absolute bottom-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white border border-indigo-200/80 shadow-2xs cursor-pointer"
+                    title="Chỉnh sửa chữ / Xuất GIF trong Studio"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                  </button>
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* Footer liên kết gốc */}
-        <div className="px-5 py-3 border-t border-slate-800 bg-slate-950 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
-          <div>
-            Mẹo: Bấm trực tiếp vào bất kỳ sticker nào để copy nhanh, hoặc bấm biểu tượng{' '}
-            <Sparkles className="w-3.5 h-3.5 inline text-blue-400" /> để chèn chữ & xuất GIF động!
-          </div>
-          <div className="flex items-center gap-3">
+        {/* Compact Footer */}
+        <div className="px-4 py-2.5 border-t border-slate-200/80 bg-white flex items-center justify-between gap-2 text-[11px] text-slate-500 pb-safe">
+          <span className="truncate">
+            Chạm vào sticker để {quickClickMode === 'copy-png' ? 'Copy PNG tách nền' : quickClickMode === 'share-gif' ? 'Gửi GIF động' : 'Mở Studio chế chữ'}
+          </span>
+          <div className="flex items-center gap-3 shrink-0">
             {pack.telegramUrl && (
               <a
                 href={pack.telegramUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="text-sky-400 hover:underline flex items-center gap-1"
+                className="text-sky-600 hover:underline flex items-center gap-1 font-medium"
               >
                 <span>Telegram</span>
                 <ExternalLink className="w-3 h-3" />
@@ -515,9 +503,9 @@ export default function PackDetailModal({
               href={`https://www.sigstick.com/pack/${pack.id}`}
               target="_blank"
               rel="noreferrer"
-              className="text-slate-400 hover:text-white flex items-center gap-1"
+              className="text-slate-500 hover:text-slate-800 flex items-center gap-1"
             >
-              <span>Xem trên SigStick</span>
+              <span>SigStick</span>
               <ExternalLink className="w-3 h-3" />
             </a>
           </div>

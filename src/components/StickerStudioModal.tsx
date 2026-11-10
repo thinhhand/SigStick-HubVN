@@ -41,7 +41,7 @@ const QUICK_CAPTIONS = [
   'Ok sếp!',
   'Hết cứu...',
   'Đúng nhận sai cãi',
-  'Cảm ơn nha ❤️',
+  'Cảm ơn nha',
   'Đợi xíu nha',
   'Chốt đơn!',
   'Ảo thật đấy',
@@ -62,9 +62,9 @@ export default function StickerStudioModal({
   const [addWhiteStroke, setAddWhiteStroke] = useState(false);
   const [caption, setCaption] = useState('');
   const [captionColor, setCaptionColor] = useState('#ffffff');
-  const [captionPosition, setCaptionPosition] = useState<'bottom' | 'top'>('bottom');
+  const [captionPosition] = useState<'bottom' | 'top'>('bottom');
   const [chatPreviewTheme, setChatPreviewTheme] = useState<'zalo' | 'messenger-dark' | 'checker'>(
-    'zalo'
+    'checker'
   );
 
   const [previewPngUrl, setPreviewPngUrl] = useState<string>('');
@@ -131,10 +131,10 @@ export default function StickerStudioModal({
         size: 512,
       });
       setCopiedDone(true);
-      onCopied('Đã copy Sticker (PNG)! Mở Zalo hoặc Messenger và nhấn Ctrl+V (hoặc Dán) ngay.');
+      onCopied('Đã copy Sticker (PNG)! Mở Zalo hoặc Messenger và Dán ngay.');
       setTimeout(() => setCopiedDone(false), 2500);
     } catch (err: any) {
-      alert(err?.message || 'Không thể copy vào Clipboard. Hãy thử nhấn Tải xuống!');
+      alert(err?.message || 'Không thể copy vào Clipboard. Hãy thử nhấn Chia sẻ hoặc Tải xuống!');
     } finally {
       setIsCopying(false);
     }
@@ -165,7 +165,7 @@ export default function StickerStudioModal({
             `${pack.id}-sticker`
           );
           onCopied(
-            'Đã tải file Sticker Động (.GIF)! Bạn có thể kéo thả file này vào khung chat Zalo / Messenger.'
+            'Đã tải file Sticker Động (.GIF)! Bạn có thể kéo thả file này vào Zalo / Messenger.'
           );
         } else {
           await handleCopyPng();
@@ -208,44 +208,50 @@ export default function StickerStudioModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-3 sm:p-6 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/45 backdrop-blur-xs p-0 sm:p-4"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-4xl rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden text-slate-100 my-auto"
+        className="relative w-full max-w-3xl max-h-[92dvh] sm:max-h-[88dvh] flex flex-col rounded-t-3xl sm:rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden text-slate-800"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-slate-900/90">
+        {/* Mobile Handle */}
+        <div className="sm:hidden flex justify-center pt-2 pb-0.5 bg-white">
+          <div className="w-10 h-1 rounded-full bg-slate-200" />
+        </div>
+
+        {/* Compact Header */}
+        <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-slate-200/80 bg-white shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shrink-0 shadow-md shadow-blue-500/20">
-              <Sparkles className="w-5 h-5 text-white" />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-sky-500 flex items-center justify-center shrink-0 shadow-xs">
+              <Sparkles className="w-4 h-4 text-white" />
             </div>
             <div className="min-w-0">
-              <h3 className="font-bold text-base sm:text-lg text-white truncate">
-                Sticker Studio & Chuyển đổi Zalo / Messenger
+              <h3 className="font-bold text-sm sm:text-base text-slate-800 truncate">
+                Sticker Studio & Tách nền
               </h3>
-              <p className="text-xs text-slate-400 truncate">
-                Bộ: <span className="text-slate-300 font-medium">{pack.title}</span>
+              <p className="text-[11px] text-slate-500 truncate">
+                Bộ: <span className="text-slate-700 font-medium">{pack.title}</span>
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={onToggleFavorite}
-              className={`p-2.5 rounded-xl border transition-all ${
+              aria-label="Lưu vào Sticker yêu thích"
+              className={`min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl border transition-all cursor-pointer ${
                 isFavorite
-                  ? 'bg-rose-500/15 border-rose-500/40 text-rose-400'
-                  : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
+                  ? 'bg-rose-50 border-rose-200 text-rose-500'
+                  : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-800'
               }`}
               title="Lưu vào Sticker yêu thích"
             >
-              <Heart className={`w-5 h-5 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
+              <Heart className={`w-4 h-4 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
             </button>
             <button
               onClick={onClose}
-              className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+              className="min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
               aria-label="Đóng"
             >
               <X className="w-5 h-5" />
@@ -253,91 +259,103 @@ export default function StickerStudioModal({
           </div>
         </div>
 
-        {/* Body */}
-        <div className="grid grid-cols-1 lg:grid-cols-12">
-          {/* Cột Trái: Khung xem trước trực tiếp trên nền Zalo / Messenger */}
-          <div className="lg:col-span-6 p-5 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-slate-800 bg-slate-950/50">
-            {/* Bộ chuyển đổi định dạng PNG vs GIF */}
-            <div className="flex items-center justify-between gap-2 mb-4">
-              <div className="inline-flex p-1 rounded-xl bg-slate-900 border border-slate-800">
+        {/* Scrollable Body */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 overflow-y-auto flex-1">
+          {/* Left Column: Live Chat Preview */}
+          <div className="lg:col-span-6 p-3.5 sm:p-5 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-slate-200/80 bg-slate-50/60">
+            {/* Format Switcher & Preview Background Switcher */}
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="inline-flex p-1 rounded-xl bg-slate-200/70">
                 <button
                   type="button"
                   onClick={() => setActiveTab('png')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                     activeTab === 'png'
-                      ? 'bg-blue-600 text-white shadow'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-white text-indigo-600 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   <ImageIcon className="w-3.5 h-3.5" />
-                  PNG (Copy Ctrl+V)
+                  PNG
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('gif')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                     activeTab === 'gif'
-                      ? 'bg-indigo-600 text-white shadow'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-white text-indigo-600 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   <Film className="w-3.5 h-3.5" />
-                  GIF Động (Zalo/Messenger)
+                  GIF Động
                 </button>
               </div>
 
-              {/* Chọn nền giả lập khung chat */}
-              <div className="flex items-center gap-1 text-xs">
+              {/* Chat Surface Preview Selector */}
+              <div className="flex items-center gap-1 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setChatPreviewTheme('checker')}
+                  className={`px-2 py-1 rounded-lg border transition-all cursor-pointer ${
+                    chatPreviewTheme === 'checker'
+                      ? 'bg-teal-50 border-teal-300 text-teal-700 font-semibold'
+                      : 'bg-white border-slate-200 text-slate-500'
+                  }`}
+                >
+                  Trong suốt
+                </button>
                 <button
                   type="button"
                   onClick={() => setChatPreviewTheme('zalo')}
-                  className={`px-2.5 py-1 rounded-lg border transition-all ${
+                  className={`px-2 py-1 rounded-lg border transition-all cursor-pointer ${
                     chatPreviewTheme === 'zalo'
-                      ? 'bg-sky-500/20 border-sky-500/50 text-sky-300 font-medium'
-                      : 'border-slate-800 text-slate-400 hover:text-slate-200'
+                      ? 'bg-sky-50 border-sky-300 text-sky-700 font-semibold'
+                      : 'bg-white border-slate-200 text-slate-500'
                   }`}
                 >
-                  Nền Zalo Sáng
+                  Zalo Sáng
                 </button>
                 <button
                   type="button"
                   onClick={() => setChatPreviewTheme('messenger-dark')}
-                  className={`px-2.5 py-1 rounded-lg border transition-all ${
+                  className={`px-2 py-1 rounded-lg border transition-all cursor-pointer ${
                     chatPreviewTheme === 'messenger-dark'
-                      ? 'bg-purple-500/20 border-purple-500/50 text-purple-300 font-medium'
-                      : 'border-slate-800 text-slate-400 hover:text-slate-200'
+                      ? 'bg-slate-800 border-slate-700 text-white font-semibold'
+                      : 'bg-white border-slate-200 text-slate-500'
                   }`}
                 >
-                  Zalo / Messenger Tối
+                  Nền Tối
                 </button>
               </div>
             </div>
 
-            {/* Khung giả lập khung chat */}
+            {/* Simulated Chat Canvas (Compact on Mobile so actions stay visible) */}
             <div
-              className={`relative rounded-2xl p-6 min-h-[290px] flex flex-col items-center justify-center transition-colors overflow-hidden border ${
+              className={`relative rounded-2xl p-4 min-h-[200px] sm:min-h-[250px] flex flex-col items-center justify-center transition-colors overflow-hidden border ${
                 chatPreviewTheme === 'zalo'
                   ? 'bg-[#ebecf0] border-slate-300 text-slate-800'
                   : chatPreviewTheme === 'messenger-dark'
-                    ? 'bg-[#22262b] border-slate-800 text-slate-100'
-                    : 'bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:16px_16px] bg-slate-900 border-slate-800'
+                    ? 'bg-[#22262b] border-slate-700 text-slate-100'
+                    : 'bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:14px_14px] bg-white border-slate-200'
               }`}
             >
-              {/* Nhãn góc */}
-              <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-black/50 text-white backdrop-blur-sm">
-                <MessageCircle className="w-3 h-3 text-blue-400" />
-                {chatPreviewTheme === 'zalo'
-                  ? 'Xem trước khung chat Zalo Sáng (#ebecf0)'
-                  : 'Xem trước khung chat Zalo / Messenger Tối'}
+              <div className="absolute top-2.5 left-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-900/65 text-white backdrop-blur-xs">
+                <MessageCircle className="w-3 h-3 text-sky-300" />
+                {chatPreviewTheme === 'checker'
+                  ? 'Đã tách nền (Không background)'
+                  : chatPreviewTheme === 'zalo'
+                    ? 'Khung chat Zalo Sáng'
+                    : 'Khung chat Zalo / Messenger Tối'}
               </div>
 
               {activeTab === 'gif' && !caption.trim() && !addWhiteStroke ? (
                 <div className="relative flex flex-col items-center">
                   {gifLoading && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 rounded-xl backdrop-blur-[2px]">
-                      <Loader2 className="w-7 h-7 animate-spin text-indigo-400 mb-1" />
-                      <span className="text-[11px] font-medium text-white bg-black/60 px-2 py-0.5 rounded">
-                        Đang chuyển WebP/APNG sang GIF...
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/60 rounded-xl backdrop-blur-[2px]">
+                      <Loader2 className="w-6 h-6 animate-spin text-indigo-600 mb-1" />
+                      <span className="text-[10px] font-semibold text-slate-700 bg-white/90 px-2 py-0.5 rounded shadow-2xs">
+                        Đang tạo GIF...
                       </span>
                     </div>
                   )}
@@ -348,18 +366,15 @@ export default function StickerStudioModal({
                     draggable
                     onLoad={() => setGifLoading(false)}
                     onError={() => setGifLoading(false)}
-                    className="w-52 h-52 sm:w-60 sm:h-60 object-contain cursor-grab active:cursor-grabbing select-all rounded-xl"
+                    className="w-40 h-40 sm:w-52 sm:h-52 object-contain cursor-grab active:cursor-grabbing select-all rounded-xl"
                     title="Kéo thả trực tiếp ảnh GIF này vào cửa sổ Zalo PC hoặc Messenger!"
                   />
-                  <span className="mt-3 text-[11px] px-3 py-1 rounded-full bg-indigo-950/80 text-indigo-200 border border-indigo-500/30">
-                    💡 Mẹo PC: Bạn có thể kéo & thả trực tiếp ảnh GIF trên vào Zalo / Messenger!
-                  </span>
                 </div>
               ) : (
                 <div className="relative flex flex-col items-center">
                   {isRenderingPreview && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <Loader2 className="w-7 h-7 animate-spin text-blue-500" />
+                      <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
                     </div>
                   )}
                   {previewPngUrl ? (
@@ -368,7 +383,7 @@ export default function StickerStudioModal({
                       src={previewPngUrl}
                       alt={pack.title}
                       draggable
-                      className="w-52 h-52 sm:w-60 sm:h-60 object-contain cursor-grab active:cursor-grabbing rounded-xl"
+                      className="w-40 h-40 sm:w-52 sm:h-52 object-contain cursor-grab active:cursor-grabbing rounded-xl"
                       title="Kéo thả hoặc nhấn Copy PNG để dán vào Zalo / Messenger"
                     />
                   ) : (
@@ -376,41 +391,70 @@ export default function StickerStudioModal({
                     <img
                       src={rawStickerUrl}
                       alt={pack.title}
-                      className="w-52 h-52 sm:w-60 sm:h-60 object-contain"
+                      className="w-40 h-40 sm:w-52 sm:h-52 object-contain"
                     />
                   )}
                 </div>
               )}
             </div>
-
-            {/* Hướng dẫn ngắn */}
-            <div className="mt-4 grid grid-cols-2 gap-2.5 text-xs">
-              <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-200">
-                <div className="font-semibold text-blue-300 mb-0.5">Cách 1: Copy & Dán (Khử nền trắng Zalo)</div>
-                Chọn <b>Tiệp nền Zalo Sáng</b> rồi bấm <b>Copy Sticker (PNG)</b> và nhấn <b>Ctrl+V</b> vào Zalo!
-              </div>
-              <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-200">
-                <div className="font-semibold text-indigo-300 mb-0.5">Cách 2: Gửi Sticker Động (.GIF)</div>
-                Bấm <b>Gửi GIF qua App</b> (trên điện thoại) hoặc <b>Kéo thả ảnh GIF</b> vào Zalo PC / Messenger.
-              </div>
-            </div>
           </div>
 
-          {/* Cột Phải: Công cụ Tùy chỉnh & Nút gửi */}
-          <div className="lg:col-span-6 p-5 flex flex-col justify-between space-y-5">
-            <div className="space-y-4">
-              {/* 1. Chèn chữ / Caption Meme */}
+          {/* Right Column: Customization Controls & Primary CTAs */}
+          <div className="lg:col-span-6 p-3.5 sm:p-5 flex flex-col justify-between space-y-4 bg-white">
+            <div className="space-y-3.5">
+              {/* 1. Background Removal Mode */}
               <div>
-                <label className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label className="flex items-center justify-between text-xs font-semibold text-slate-600 mb-1.5">
                   <span className="flex items-center gap-1.5">
-                    <Type className="w-3.5 h-3.5 text-blue-400" />
-                    Chèn chữ Meme lên Sticker (Tùy chọn)
+                    <Layers className="w-3.5 h-3.5 text-teal-600" />
+                    Chế độ Tách nền Sticker
+                  </span>
+                  <span className="text-[10px] font-medium text-teal-600">
+                    Tự động lưu
+                  </span>
+                </label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(
+                    [
+                      { id: 'transparent', label: 'Tự tách nền' },
+                      { id: 'zalo-light', label: 'Zalo Sáng' },
+                      { id: 'zalo-dark', label: 'Zalo Tối' },
+                    ] as const
+                  ).map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setBgMode(item.id);
+                        setDefaultCopyBgMode(item.id);
+                        if (item.id === 'transparent') setChatPreviewTheme('checker');
+                        if (item.id === 'zalo-dark') setChatPreviewTheme('messenger-dark');
+                        if (item.id === 'zalo-light') setChatPreviewTheme('zalo');
+                      }}
+                      className={`py-2 px-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                        bgMode === item.id
+                          ? 'bg-teal-50 border-teal-400 text-teal-800 shadow-2xs'
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 2. Meme Caption Input */}
+              <div>
+                <label className="flex items-center justify-between text-xs font-semibold text-slate-600 mb-1.5">
+                  <span className="flex items-center gap-1.5">
+                    <Type className="w-3.5 h-3.5 text-indigo-500" />
+                    Chèn chữ Meme (Tùy chọn)
                   </span>
                   {caption && (
                     <button
                       type="button"
                       onClick={() => setCaption('')}
-                      className="text-rose-400 hover:underline text-[11px] normal-case"
+                      className="text-rose-500 hover:underline text-[11px] cursor-pointer"
                     >
                       Xóa chữ
                     </button>
@@ -426,20 +470,20 @@ export default function StickerStudioModal({
                         setActiveTab('png');
                       }
                     }}
-                    placeholder="Nhập chữ (VD: Ok sếp, Hết cứu, Đúng nhận sai cãi...)"
-                    className="flex-1 px-3.5 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                    placeholder="Nhập chữ (VD: Ok sếp, Hết cứu...)"
+                    className="flex-1 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-base sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-indigo-400"
                   />
                   <input
                     type="color"
                     value={captionColor}
                     onChange={(e) => setCaptionColor(e.target.value)}
-                    className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 cursor-pointer p-1"
+                    className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer p-1 shrink-0"
                     title="Màu chữ"
                   />
                 </div>
 
-                {/* Các câu mẫu nhanh */}
-                <div className="flex flex-wrap gap-1.5 mt-2">
+                {/* Quick Captions Horizontal Scroll on Mobile */}
+                <div className="flex items-center gap-1.5 mt-2 overflow-x-auto no-scrollbar pb-0.5">
                   {QUICK_CAPTIONS.map((text) => (
                     <button
                       key={text}
@@ -448,10 +492,10 @@ export default function StickerStudioModal({
                         setCaption(text);
                         setActiveTab('png');
                       }}
-                      className={`px-2.5 py-1 rounded-lg text-xs border transition-all ${
+                      className={`shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all cursor-pointer ${
                         caption === text
-                          ? 'bg-blue-600/30 border-blue-500 text-blue-200 font-medium'
-                          : 'bg-slate-800/70 border-slate-700/80 text-slate-300 hover:bg-slate-800'
+                          ? 'bg-indigo-50 border-indigo-300 text-indigo-700 font-semibold'
+                          : 'bg-slate-50 border-slate-200/80 text-slate-600 hover:bg-slate-100'
                       }`}
                     >
                       {text}
@@ -460,156 +504,112 @@ export default function StickerStudioModal({
                 </div>
               </div>
 
-              {/* 2. Tùy chỉnh Tách nền tự động & Viền Trắng */}
-              <div className="space-y-3 pt-1">
-                <div>
-                  <label className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                    <span className="flex items-center gap-1.5">
-                      <Layers className="w-3.5 h-3.5 text-indigo-400" />
-                      Chế độ Tách nền Sticker
-                    </span>
-                    <span className="text-[10px] font-normal normal-case text-emerald-400">
-                      Tự động lưu cho lần Copy sau
-                    </span>
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                    {(
-                      [
-                        { id: 'transparent', label: '✨ Tự tách nền (Không BG)' },
-                        { id: 'zalo-light', label: 'Tiệp nền Zalo Sáng' },
-                        { id: 'zalo-dark', label: '🌙 Tiệp nền Zalo Tối' },
-                      ] as const
-                    ).map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => {
-                          setBgMode(item.id);
-                          setDefaultCopyBgMode(item.id);
-                          if (item.id === 'zalo-dark') setChatPreviewTheme('messenger-dark');
-                          if (item.id === 'zalo-light') setChatPreviewTheme('zalo');
-                        }}
-                        className={`py-2 px-2.5 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
-                          bgMode === item.id
-                            ? 'bg-emerald-600/25 border-emerald-500 text-emerald-200 shadow-xs'
-                            : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    Hiệu ứng Viền Sticker (Die-Cut)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAddWhiteStroke(!addWhiteStroke);
-                      if (!addWhiteStroke) setActiveTab('png');
-                    }}
-                    className={`w-full py-2 px-3 rounded-xl text-xs font-medium border flex items-center justify-between transition-all cursor-pointer ${
-                      addWhiteStroke
-                        ? 'bg-amber-500/20 border-amber-500/60 text-amber-200'
-                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-750'
-                    }`}
-                  >
-                    <span>Viền trắng quanh nhân vật Sticker</span>
-                    <span
-                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                        addWhiteStroke ? 'bg-amber-400 text-slate-950' : 'bg-slate-700 text-slate-400'
-                      }`}
-                    >
-                      {addWhiteStroke ? 'BẬT' : 'TẮT'}
-                    </span>
-                  </button>
-                </div>
-              </div>
+              {/* 3. White Die-Cut Stroke Toggle */}
+              <button
+                type="button"
+                onClick={() => {
+                  setAddWhiteStroke(!addWhiteStroke);
+                  if (!addWhiteStroke) setActiveTab('png');
+                }}
+                className={`w-full py-2 px-3 rounded-xl text-xs font-medium border flex items-center justify-between transition-all cursor-pointer ${
+                  addWhiteStroke
+                    ? 'bg-amber-50 border-amber-300 text-amber-800'
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  Viền trắng quanh nhân vật (Die-Cut)
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                    addWhiteStroke ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  {addWhiteStroke ? 'BẬT' : 'TẮT'}
+                </span>
+              </button>
             </div>
 
-            {/* Cụm nút Hành động chính */}
-            <div className="space-y-2.5 pt-3 border-t border-slate-800">
-              {/* Nút 1: Copy PNG vào Clipboard */}
+            {/* Primary Action Buttons (Touch-Friendly >= 44px) */}
+            <div className="space-y-2 pt-3 border-t border-slate-100 pb-safe">
+              {/* Primary CTA: Copy PNG */}
               <button
                 type="button"
                 onClick={handleCopyPng}
                 disabled={isCopying}
-                className="w-full py-3.5 px-5 rounded-2xl font-bold text-sm sm:text-base bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2.5 transition-all active:scale-[0.99] cursor-pointer"
+                className="w-full min-h-[46px] py-3 px-4 rounded-2xl font-bold text-sm bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-500/20 flex items-center justify-center gap-2 transition-all active:scale-[0.99] cursor-pointer"
               >
                 {isCopying ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : copiedDone ? (
-                  <Check className="w-5 h-5 text-emerald-300" />
+                  <Check className="w-4 h-4 text-teal-200" />
                 ) : (
-                  <Copy className="w-5 h-5" />
+                  <Copy className="w-4 h-4" />
                 )}
                 <span>
                   {copiedDone
-                    ? 'Đã Copy PNG! Nhấn Ctrl+V vào Zalo / Messenger'
-                    : 'Copy Sticker (PNG) — Dán Ctrl+V vào Zalo & Messenger'}
+                    ? 'Đã Copy! Mở Zalo / Messenger và Dán'
+                    : 'Copy Sticker (Tự tách nền) — Dán ngay'}
                 </span>
               </button>
 
-              {/* Hàng nút 2: Chia sẻ trực tiếp (Share Sheet) sang Zalo/Messenger & Tải GIF */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {/* Secondary CTAs: Share GIF & Share PNG */}
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => handleShareNative('gif')}
                   disabled={isSharing}
-                  className="py-3 px-4 rounded-xl font-semibold text-xs sm:text-sm bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-200 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  className="min-h-[42px] py-2.5 px-3 rounded-xl font-semibold text-xs bg-violet-50 hover:bg-violet-100/80 border border-violet-200 text-violet-700 flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
                 >
                   {isSharing ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    <Share2 className="w-4 h-4 text-indigo-400" />
+                    <Share2 className="w-3.5 h-3.5 text-violet-600" />
                   )}
-                  <span>Gửi Sticker Động (.GIF) sang App</span>
+                  <span>Gửi GIF qua App</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => handleShareNative('png')}
                   disabled={isSharing}
-                  className="py-3 px-4 rounded-xl font-semibold text-xs sm:text-sm bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  className="min-h-[42px] py-2.5 px-3 rounded-xl font-semibold text-xs bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-700 flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
                 >
-                  <Share2 className="w-4 h-4 text-blue-400" />
-                  <span>Mở Share Sheet (PNG)</span>
+                  <Share2 className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Chia sẻ PNG</span>
                 </button>
               </div>
 
-              {/* Hàng nút 3: Tải file theo định dạng */}
+              {/* Download Row */}
               <div className="flex items-center justify-between gap-2 pt-1">
-                <span className="text-xs text-slate-400">Tải file đã chuyển đổi:</span>
+                <span className="text-[11px] text-slate-500">Tải về máy:</span>
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => handleDownload('png')}
                     disabled={isDownloading}
-                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 flex items-center gap-1 border border-slate-700"
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700 flex items-center gap-1 border border-slate-200 cursor-pointer"
                   >
-                    <Download className="w-3.5 h-3.5 text-blue-400" />
+                    <Download className="w-3 h-3 text-indigo-600" />
                     .PNG
                   </button>
                   <button
                     type="button"
                     onClick={() => handleDownload('gif')}
                     disabled={isDownloading}
-                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 flex items-center gap-1 border border-slate-700"
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700 flex items-center gap-1 border border-slate-200 cursor-pointer"
                   >
-                    <Download className="w-3.5 h-3.5 text-indigo-400" />
-                    .GIF (Động)
+                    <Download className="w-3 h-3 text-violet-600" />
+                    .GIF
                   </button>
                   <button
                     type="button"
                     onClick={() => handleDownload('webp')}
                     disabled={isDownloading}
-                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-400 hover:text-slate-200 flex items-center gap-1 border border-slate-800"
+                    className="px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 text-xs font-medium text-slate-500 border border-slate-200 cursor-pointer"
                   >
-                    .WebP gốc
+                    .WebP
                   </button>
                 </div>
               </div>

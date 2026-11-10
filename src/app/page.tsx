@@ -22,6 +22,7 @@ import {
   Monitor,
   ChevronRight,
   Trash2,
+  Globe,
 } from "lucide-react";
 import {
   StickerPack,
@@ -52,18 +53,18 @@ export interface SavedStickerEntry {
 }
 
 const POPULAR_TAGS = [
-  { label: "🔥 Meme Việt", query: "Meme" },
-  { label: "🐱 Mèo Cute", query: "Cat" },
-  { label: "🐻 Bubu Dudu", query: "Bubu Dudu" },
-  { label: "🐹 Chiikawa", query: "Chiikawa" },
-  { label: "👶 Quby / Pentol", query: "Quby" },
-  { label: "🐶 Doge & Shiba", query: "Shiba" },
-  { label: "🦫 Capybara", query: "Capybara" },
-  { label: "🎌 Anime", query: "Anime" },
-  { label: "🐸 Pepe", query: "Pepe" },
-  { label: "💖 Tình yêu", query: "Couple Love" },
-  { label: "😂 Hài hước", query: "Funny" },
-  { label: "🐧 Cánh cụt", query: "Penguin" },
+  { label: "Meme Việt", query: "Meme" },
+  { label: "Mèo Cute", query: "Cat" },
+  { label: "Bubu Dudu", query: "Bubu Dudu" },
+  { label: "Chiikawa", query: "Chiikawa" },
+  { label: "Quby", query: "Quby" },
+  { label: "Shiba", query: "Shiba" },
+  { label: "Capybara", query: "Capybara" },
+  { label: "Anime", query: "Anime" },
+  { label: "Pepe", query: "Pepe" },
+  { label: "Tình yêu", query: "Couple Love" },
+  { label: "Hài hước", query: "Funny" },
+  { label: "Cánh cụt", query: "Penguin" },
 ];
 
 type MainTab = "discover" | "collections" | "favorites" | "saved" | "recent";
@@ -126,7 +127,7 @@ export default function SigStickHomePage() {
       setToast({ message, type });
       toastTimeoutRef.current = setTimeout(() => {
         setToast(null);
-      }, 3600);
+      }, 3200);
     },
     []
   );
@@ -162,7 +163,7 @@ export default function SigStickHomePage() {
       white: "Nền trắng",
       dark: "Nền tối",
     };
-    showToast(`✨ Đã đổi chế độ: ${labelMap[next]}`, "info");
+    showToast(`Đã đổi chế độ: ${labelMap[next]}`, "info");
   };
 
   // Save helpers
@@ -225,7 +226,7 @@ export default function SigStickHomePage() {
           ...favoriteStickers,
         ];
         persistFavorites(next);
-        showToast("❤️ Đã lưu vào Sticker yêu thích!", "success");
+        showToast("Đã lưu vào Sticker yêu thích!", "success");
       }
     },
     [favoriteStickers, showToast]
@@ -241,7 +242,7 @@ export default function SigStickHomePage() {
       } else {
         const next = [pack, ...savedPacks];
         persistSavedPacks(next);
-        showToast(`🔖 Đã lưu bộ sticker "${pack.title}"!`, "success");
+        showToast(`Đã lưu bộ sticker "${pack.title}"!`, "success");
       }
     },
     [savedPacks, showToast]
@@ -438,10 +439,10 @@ export default function SigStickHomePage() {
       setCopiedPreviewKey(key);
       showToast(
         copyBgMode === "transparent"
-          ? "✨ Đã tự động tách nền & Copy Sticker (không background)! Nhấn Ctrl+V ngay."
+          ? "Đã tự tách nền & Copy Sticker! Dán vào Zalo/Messenger ngay."
           : copyBgMode === "zalo-light"
-          ? "Đã Copy Sticker (Tiệp nền Zalo Sáng)! Nhấn Ctrl+V ngay."
-          : "Đã Copy Sticker (Tiệp nền Zalo Tối)! Nhấn Ctrl+V ngay.",
+          ? "Đã Copy Sticker (Tiệp nền Zalo Sáng)!"
+          : "Đã Copy Sticker (Tiệp nền Zalo Tối)!",
         "success"
       );
       setTimeout(() => {
@@ -449,7 +450,7 @@ export default function SigStickHomePage() {
       }, 2000);
     } catch {
       showToast(
-        "Trình duyệt chặn Clipboard tự động, đang mở Studio để bạn tải/chia sẻ!",
+        "Mở Studio để tải hoặc chia sẻ trực tiếp qua điện thoại!",
         "info"
       );
       setStudioTarget({
@@ -465,17 +466,17 @@ export default function SigStickHomePage() {
   const savedPackIdSet = new Set(savedPacks.map((p) => p.id));
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#090d16] text-slate-100">
-      {/* Decorative Ambient Background Glows */}
+    <div className="min-h-dvh flex flex-col bg-[#f4f7fb] text-slate-800 pb-20 lg:pb-0">
+      {/* Soft Pastel Ambient Background Accents */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden z-0">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600/15 rounded-full blur-[130px]" />
-        <div className="absolute top-20 right-0 w-96 h-96 bg-fuchsia-600/10 rounded-full blur-[140px]" />
-        <div className="absolute bottom-0 left-1/3 w-96 h-96 bg-blue-600/10 rounded-full blur-[150px]" />
+        <div className="absolute -top-32 -left-32 w-80 h-80 bg-indigo-200/40 rounded-full blur-[100px]" />
+        <div className="absolute top-16 right-0 w-72 h-72 bg-sky-200/35 rounded-full blur-[110px]" />
+        <div className="absolute bottom-10 left-1/3 w-80 h-80 bg-rose-200/25 rounded-full blur-[120px]" />
       </div>
 
-      {/* Top Sticky Navbar */}
-      <header className="sticky top-0 z-30 backdrop-blur-xl bg-[#090d16]/85 border-b border-slate-800/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+      {/* Compact Sticky App Bar */}
+      <header className="sticky top-0 z-30 backdrop-blur-xl bg-white/85 border-b border-slate-200/80 shadow-[0_1px_3px_rgba(15,23,42,0.03)]">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
           {/* Brand Logo */}
           <div
             onClick={() => {
@@ -483,37 +484,37 @@ export default function SigStickHomePage() {
               setActiveQuery("");
               setSearchInput("");
             }}
-            className="flex items-center gap-3 cursor-pointer group shrink-0"
+            className="flex items-center gap-2.5 cursor-pointer group shrink-0"
           >
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 via-violet-500 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition">
-              <MessageCircle className="w-5 h-5 text-white fill-white/20" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-indigo-500 via-sky-500 to-teal-400 flex items-center justify-center shadow-sm shadow-indigo-500/20 group-hover:scale-105 transition">
+              <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white fill-white/20" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-indigo-200 to-pink-200 bg-clip-text text-transparent">
-                  SigStick Hub
+              <div className="flex items-center gap-1.5">
+                <span className="font-extrabold text-base sm:text-lg tracking-tight text-slate-800">
+                  SigStick
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                  Zalo & Messenger
+                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200/80">
+                  VN
                 </span>
-                <span className="text-[10px] font-semibold font-mono px-1.5 py-0.5 rounded-md bg-slate-800/80 text-slate-400 border border-slate-700/60 shadow-xs">
+                <span className="text-[10px] font-semibold font-mono px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200/80">
                   {APP_VERSION}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 hidden sm:block">
-                Kho Sticker SigStick • Tự động tách nền & đổi PNG / GIF 1 chạm
+              <p className="text-[11px] text-slate-500 hidden sm:block">
+                Tự động tách nền • Gửi Zalo & Messenger 1 chạm
               </p>
             </div>
           </div>
 
-          {/* Navigation Pills (Desktop) */}
-          <nav className="hidden lg:flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
+          {/* Desktop Navigation Pills */}
+          <nav className="hidden lg:flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80">
             <button
               onClick={() => setMainTab("discover")}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                 mainTab === "discover"
-                  ? "bg-indigo-600 text-white shadow"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-white text-indigo-600 shadow-xs border border-slate-200/60"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               <Flame className="w-3.5 h-3.5" />
@@ -523,8 +524,8 @@ export default function SigStickHomePage() {
               onClick={() => setMainTab("collections")}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                 mainTab === "collections"
-                  ? "bg-indigo-600 text-white shadow"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-white text-indigo-600 shadow-xs border border-slate-200/60"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
@@ -534,8 +535,8 @@ export default function SigStickHomePage() {
               onClick={() => setMainTab("favorites")}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                 mainTab === "favorites"
-                  ? "bg-pink-600 text-white shadow"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-white text-rose-600 shadow-xs border border-slate-200/60"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               <Heart className="w-3.5 h-3.5" />
@@ -545,8 +546,8 @@ export default function SigStickHomePage() {
               onClick={() => setMainTab("saved")}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                 mainTab === "saved"
-                  ? "bg-indigo-600 text-white shadow"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-white text-indigo-600 shadow-xs border border-slate-200/60"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               <Bookmark className="w-3.5 h-3.5" />
@@ -556,8 +557,8 @@ export default function SigStickHomePage() {
               onClick={() => setMainTab("recent")}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                 mainTab === "recent"
-                  ? "bg-indigo-600 text-white shadow"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-white text-indigo-600 shadow-xs border border-slate-200/60"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               <Clock className="w-3.5 h-3.5" />
@@ -565,32 +566,32 @@ export default function SigStickHomePage() {
             </button>
           </nav>
 
-          {/* Right Action Buttons */}
-          <div className="flex items-center gap-2">
+          {/* Right Quick Actions (Mobile-Ergonomic) */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               onClick={handleToggleCopyBgMode}
               title="Chế độ tách nền tự động khi Copy / Gửi Sticker"
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/70 text-emerald-200 border border-emerald-500/40 text-xs font-semibold transition cursor-pointer"
+              className="min-h-[38px] flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-teal-50/90 hover:bg-teal-100/80 text-teal-700 border border-teal-200/90 text-xs font-semibold transition cursor-pointer active:scale-95"
             >
               <span
                 className={`w-2.5 h-2.5 rounded-full border shrink-0 ${
                   copyBgMode === "transparent"
-                    ? "bg-transparent border-dashed border-emerald-300"
+                    ? "bg-white border-dashed border-teal-500"
                     : copyBgMode === "zalo-light"
                     ? "bg-[#ebecf0] border-slate-400"
-                    : "bg-[#22262b] border-slate-500"
+                    : "bg-[#22262b] border-slate-600"
                 }`}
               />
               <span className="hidden md:inline">
                 {copyBgMode === "transparent"
-                  ? "✨ Tự tách nền (Không background)"
+                  ? "Tự tách nền (Không BG)"
                   : copyBgMode === "zalo-light"
                   ? "Tiệp nền Zalo Sáng"
                   : "Tiệp nền Zalo Tối"}
               </span>
-              <span className="md:hidden">
+              <span className="md:hidden text-[11px]">
                 {copyBgMode === "transparent"
-                  ? "✨ Tự tách nền"
+                  ? "Tách nền"
                   : copyBgMode === "zalo-light"
                   ? "Zalo Sáng"
                   : "Zalo Tối"}
@@ -599,57 +600,35 @@ export default function SigStickHomePage() {
 
             <button
               onClick={() => setShowGuideModal(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700/80 text-xs font-semibold transition cursor-pointer"
+              aria-label="Hướng dẫn sử dụng"
+              className="min-h-[38px] flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-700 border border-slate-200/90 text-xs font-semibold transition cursor-pointer active:scale-95"
             >
-              <HelpCircle className="w-4 h-4 text-indigo-400" />
-              <span className="hidden sm:inline">Cách gửi Zalo / Messenger</span>
-              <span className="sm:hidden">Hướng dẫn</span>
+              <HelpCircle className="w-4 h-4 text-indigo-500" />
+              <span className="hidden sm:inline">Hướng dẫn</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Content Container */}
-      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Hero Search & Quick URL Import */}
-        <section className="relative rounded-3xl bg-gradient-to-br from-slate-900/95 via-[#11182c]/95 to-indigo-950/40 border border-slate-800/90 p-5 sm:p-7 shadow-2xl">
-          <div className="max-w-3xl mx-auto text-center space-y-3 mb-5">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-              Gửi Sticker{" "}
-              <span className="bg-gradient-to-r from-sky-400 to-blue-500 bg-clip-text text-transparent">
-                Zalo
-              </span>{" "}
-              &{" "}
-              <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Messenger
-              </span>{" "}
-              siêu tốc
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Tìm kiếm hàng trăm ngàn bộ sticker từ{" "}
-              <code className="text-indigo-300 font-semibold">sigstick.com</code>
-              . Nhấn vào bất kỳ sticker nào để{" "}
-              <strong className="text-white">Copy PNG dán thẳng (Ctrl+V)</strong>
-              , <strong className="text-white">Chia sẻ ảnh động GIF</strong> hoặc{" "}
-              <strong className="text-white">Chế chữ Meme</strong>!
-            </p>
-          </div>
-
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-3 sm:py-5 space-y-3.5 sm:space-y-5">
+        {/* Compact Search & Tag Bar (Always reachable, doesn't push content off-screen on mobile) */}
+        <section className="rounded-2xl sm:rounded-3xl bg-white/90 backdrop-blur-md border border-slate-200/80 p-3 sm:p-5 shadow-[0_2px_12px_rgba(15,23,42,0.04)]">
           {/* Search Form */}
           <form
             onSubmit={(e) => handleSearchSubmit(e)}
-            className="relative max-w-2xl mx-auto"
+            className="relative max-w-3xl mx-auto"
           >
             <div className="relative flex items-center">
-              <Search className="w-5 h-5 text-slate-400 absolute left-4 pointer-events-none" />
+              <Search className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 absolute left-3.5 pointer-events-none" />
               <input
                 type="text"
                 value={searchInput}
                 onFocus={() => setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 180)}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Tìm tên sticker (vd: Mèo, Bubu Dudu, Chiikawa...) hoặc dán link sigstick.com/pack/..."
-                className="w-full pl-12 pr-28 py-3.5 rounded-2xl bg-slate-950/90 border border-slate-700/80 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-inner"
+                placeholder="Tìm sticker (Mèo, Bubu Dudu, Chiikawa...) hoặc dán link..."
+                className="w-full pl-10 sm:pl-11 pr-24 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-slate-50/90 border border-slate-200/90 text-base sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-indigo-400 focus:ring-3 focus:ring-indigo-500/10 transition"
               />
               {searchInput && (
                 <button
@@ -660,7 +639,8 @@ export default function SigStickHomePage() {
                       setActiveQuery("");
                     }
                   }}
-                  className="absolute right-24 p-1.5 text-slate-400 hover:text-white cursor-pointer"
+                  aria-label="Xóa từ khóa"
+                  className="absolute right-20 p-1.5 text-slate-400 hover:text-slate-600 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -668,20 +648,20 @@ export default function SigStickHomePage() {
               <button
                 type="submit"
                 disabled={isLoadingDirectPack}
-                className="absolute right-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition shadow-md cursor-pointer"
+                className="absolute right-1.5 px-3.5 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition shadow-xs cursor-pointer active:scale-95"
               >
-                {isLoadingDirectPack ? "Đang mở..." : "Tìm kiếm"}
+                {isLoadingDirectPack ? "Mở..." : "Tìm"}
               </button>
             </div>
 
             {/* Autocomplete Suggestions Dropdown */}
             {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute left-0 right-0 top-full mt-2 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden z-30">
-                <div className="px-3 py-1.5 text-[11px] font-semibold text-slate-400 border-b border-slate-800 flex items-center justify-between">
-                  <span>Gợi ý từ SigStick</span>
-                  <span>Nhấn để tìm</span>
+              <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-30">
+                <div className="px-3 py-1.5 text-[11px] font-semibold text-slate-400 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                  <span>Gợi ý tìm kiếm</span>
+                  <span>Chạm để chọn</span>
                 </div>
-                <div className="divide-y divide-slate-800/60 max-h-60 overflow-y-auto">
+                <div className="divide-y divide-slate-100 max-h-56 overflow-y-auto">
                   {suggestions.map((sug) => (
                     <button
                       type="button"
@@ -690,7 +670,7 @@ export default function SigStickHomePage() {
                         setSearchInput(sug);
                         handleSearchSubmit(undefined, sug);
                       }}
-                      className="w-full px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-indigo-600/20 hover:text-indigo-200 flex items-center gap-2.5 transition cursor-pointer"
+                      className="w-full px-3.5 py-2.5 text-left text-sm text-slate-700 hover:bg-indigo-50/70 hover:text-indigo-600 flex items-center gap-2.5 transition cursor-pointer"
                     >
                       <Search className="w-3.5 h-3.5 text-slate-400" />
                       <span>{sug}</span>
@@ -701,8 +681,8 @@ export default function SigStickHomePage() {
             )}
           </form>
 
-          {/* Popular Tag Chips */}
-          <div className="max-w-4xl mx-auto mt-4 flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+          {/* Popular Tag Chips (Single compact scrollable row) */}
+          <div className="max-w-3xl mx-auto mt-2.5 flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
             {POPULAR_TAGS.map((tag) => {
               const isSelected =
                 activeQuery.toLowerCase() === tag.query.toLowerCase();
@@ -713,10 +693,10 @@ export default function SigStickHomePage() {
                     setSearchInput(tag.query);
                     handleSearchSubmit(undefined, tag.query);
                   }}
-                  className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition cursor-pointer border ${
+                  className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition cursor-pointer border active:scale-95 ${
                     isSelected
-                      ? "bg-indigo-600 text-white border-indigo-400 shadow-sm"
-                      : "bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border-slate-700/70"
+                      ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                      : "bg-slate-100/80 hover:bg-slate-200/70 text-slate-600 border-slate-200/70"
                   }`}
                 >
                   {tag.label}
@@ -726,82 +706,22 @@ export default function SigStickHomePage() {
           </div>
         </section>
 
-        {/* Mobile / Tablet Navigation Bar */}
-        <div className="flex lg:hidden items-center gap-1.5 overflow-x-auto pb-1">
-          <button
-            onClick={() => setMainTab("discover")}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold shrink-0 cursor-pointer ${
-              mainTab === "discover"
-                ? "bg-indigo-600 text-white"
-                : "bg-slate-900 text-slate-400 border border-slate-800"
-            }`}
-          >
-            <Flame className="w-3.5 h-3.5" />
-            Khám phá
-          </button>
-          <button
-            onClick={() => setMainTab("collections")}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold shrink-0 cursor-pointer ${
-              mainTab === "collections"
-                ? "bg-indigo-600 text-white"
-                : "bg-slate-900 text-slate-400 border border-slate-800"
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            Bộ sưu tập
-          </button>
-          <button
-            onClick={() => setMainTab("favorites")}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold shrink-0 cursor-pointer ${
-              mainTab === "favorites"
-                ? "bg-pink-600 text-white"
-                : "bg-slate-900 text-slate-400 border border-slate-800"
-            }`}
-          >
-            <Heart className="w-3.5 h-3.5" />
-            Yêu thích ({favoriteStickers.length})
-          </button>
-          <button
-            onClick={() => setMainTab("saved")}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold shrink-0 cursor-pointer ${
-              mainTab === "saved"
-                ? "bg-indigo-600 text-white"
-                : "bg-slate-900 text-slate-400 border border-slate-800"
-            }`}
-          >
-            <Bookmark className="w-3.5 h-3.5" />
-            Đã lưu ({savedPacks.length})
-          </button>
-          <button
-            onClick={() => setMainTab("recent")}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold shrink-0 cursor-pointer ${
-              mainTab === "recent"
-                ? "bg-indigo-600 text-white"
-                : "bg-slate-900 text-slate-400 border border-slate-800"
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            Gần đây ({recentStickers.length})
-          </button>
-        </div>
-
         {/* =========================================================
             TAB 1: DISCOVER & SEARCH RESULTS
            ========================================================= */}
         {mainTab === "discover" && (
-          <div className="space-y-5">
-            {/* Sub-header controls: Trending / Top / New OR Active Search Banner */}
-            <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-3.5 sm:space-y-4">
+            {/* Compact Filter Bar: Trending / Top / New + Region Selector */}
+            <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar pb-0.5">
               {activeQuery ? (
-                <div className="flex items-center gap-3">
-                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                    <Search className="w-5 h-5 text-indigo-400" />
-                    Kết quả cho:{" "}
-                    <span className="text-indigo-300">
-                      &ldquo;{activeQuery}&rdquo;
+                <div className="flex items-center justify-between w-full gap-2 bg-white px-3.5 py-2 rounded-xl border border-slate-200/80">
+                  <h2 className="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-1.5 truncate">
+                    <Search className="w-4 h-4 text-indigo-500 shrink-0" />
+                    <span className="truncate">
+                      Kết quả: &ldquo;{activeQuery}&rdquo;
                     </span>
-                    <span className="text-xs font-normal text-slate-400">
-                      ({packs.length} bộ sticker)
+                    <span className="text-xs font-normal text-slate-500 shrink-0">
+                      ({packs.length})
                     </span>
                   </h2>
                   <button
@@ -809,98 +729,99 @@ export default function SigStickHomePage() {
                       setActiveQuery("");
                       setSearchInput("");
                     }}
-                    className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 flex items-center gap-1 cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-medium text-slate-600 flex items-center gap-1 shrink-0 cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
-                    Xóa bộ lọc
+                    Xóa lọc
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
-                  <button
-                    onClick={() => setDiscoverTab("trending")}
-                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                      discoverTab === "trending"
-                        ? "bg-gradient-to-r from-orange-500 to-pink-600 text-white shadow"
-                        : "text-slate-400 hover:text-white"
-                    }`}
-                  >
-                    <Flame className="w-3.5 h-3.5" />
-                    Thịnh hành (Trending)
-                  </button>
-                  <button
-                    onClick={() => setDiscoverTab("top")}
-                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                      discoverTab === "top"
-                        ? "bg-indigo-600 text-white shadow"
-                        : "text-slate-400 hover:text-white"
-                    }`}
-                  >
-                    <Trophy className="w-3.5 h-3.5" />
-                    Tải nhiều nhất
-                  </button>
-                  <button
-                    onClick={() => setDiscoverTab("new")}
-                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                      discoverTab === "new"
-                        ? "bg-emerald-600 text-white shadow"
-                        : "text-slate-400 hover:text-white"
-                    }`}
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Mới cập nhật
-                  </button>
-                </div>
-              )}
-
-              {/* Region Filter (when browsing Discover) */}
-              {!activeQuery && (
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-slate-400">Khu vực:</span>
-                  {(
-                    [
-                      { id: "vn", label: "🇻🇳 Việt Nam" },
-                      { id: "jp", label: "🇯🇵 Nhật Bản" },
-                      { id: "kr", label: "🇰🇷 Hàn Quốc" },
-                      { id: "us", label: "🌎 Quốc tế" },
-                    ] as const
-                  ).map((r) => (
+                <>
+                  {/* Category Segmented Control */}
+                  <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.03)] shrink-0">
                     <button
-                      key={r.id}
-                      onClick={() => setRegion(r.id)}
-                      className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer border ${
-                        region === r.id
-                          ? "bg-indigo-600/25 text-indigo-200 border-indigo-500/50"
-                          : "bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200"
+                      onClick={() => setDiscoverTab("trending")}
+                      className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                        discoverTab === "trending"
+                          ? "bg-indigo-600 text-white shadow-xs"
+                          : "text-slate-600 hover:text-slate-900"
                       }`}
                     >
-                      {r.label}
+                      <Flame className="w-3.5 h-3.5" />
+                      <span>Thịnh hành</span>
                     </button>
-                  ))}
-                </div>
+                    <button
+                      onClick={() => setDiscoverTab("top")}
+                      className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                        discoverTab === "top"
+                          ? "bg-indigo-600 text-white shadow-xs"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      <Trophy className="w-3.5 h-3.5" />
+                      <span>Tải nhiều</span>
+                    </button>
+                    <button
+                      onClick={() => setDiscoverTab("new")}
+                      className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                        discoverTab === "new"
+                          ? "bg-indigo-600 text-white shadow-xs"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Mới</span>
+                    </button>
+                  </div>
+
+                  {/* Region Pills */}
+                  <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.03)] shrink-0">
+                    <Globe className="w-3.5 h-3.5 text-slate-400 ml-1.5 hidden sm:inline" />
+                    {(
+                      [
+                        { id: "vn", label: "VN" },
+                        { id: "jp", label: "JP" },
+                        { id: "kr", label: "KR" },
+                        { id: "us", label: "Quốc tế" },
+                      ] as const
+                    ).map((r) => (
+                      <button
+                        key={r.id}
+                        onClick={() => setRegion(r.id)}
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                          region === r.id
+                            ? "bg-indigo-50 text-indigo-600 border border-indigo-200/80"
+                            : "text-slate-500 hover:text-slate-800"
+                        }`}
+                      >
+                        {r.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
 
-            {/* Pack Cards Grid */}
+            {/* Pack Cards Grid — 2 Columns on Mobile for Compact Browsing, 3 on lg, 4 on xl */}
             {isLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Array.from({ length: 9 }).map((_, idx) => (
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
+                {Array.from({ length: 8 }).map((_, idx) => (
                   <div
                     key={idx}
-                    className="h-56 rounded-2xl bg-slate-900/60 border border-slate-800/80 p-4 animate-pulse flex flex-col justify-between"
+                    className="h-48 sm:h-52 rounded-2xl bg-white border border-slate-200/80 p-3 sm:p-4 animate-pulse flex flex-col justify-between"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-14 h-14 rounded-xl bg-slate-800" />
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-100 shrink-0" />
                       <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-slate-800 rounded w-3/4" />
-                        <div className="h-3 bg-slate-800 rounded w-1/2" />
+                        <div className="h-3.5 bg-slate-100 rounded w-3/4" />
+                        <div className="h-2.5 bg-slate-100 rounded w-1/2" />
                       </div>
                     </div>
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-4 gap-1.5">
                       {Array.from({ length: 4 }).map((__, i) => (
                         <div
                           key={i}
-                          className="aspect-square rounded-xl bg-slate-800/70"
+                          className="aspect-square rounded-lg bg-slate-100"
                         />
                       ))}
                     </div>
@@ -908,18 +829,18 @@ export default function SigStickHomePage() {
                 ))}
               </div>
             ) : packs.length === 0 ? (
-              <div className="rounded-2xl bg-slate-900/50 border border-slate-800 p-12 text-center space-y-3">
-                <p className="text-base font-semibold text-slate-300">
+              <div className="rounded-2xl bg-white border border-slate-200/80 p-10 text-center space-y-2.5">
+                <p className="text-sm sm:text-base font-semibold text-slate-700">
                   Không tìm thấy bộ sticker nào khớp với từ khóa này.
                 </p>
-                <p className="text-xs text-slate-400">
-                  Hãy thử tìm bằng từ khóa tiếng Anh (vd: Cat, Bear, Cute, Meme,
+                <p className="text-xs text-slate-500">
+                  Hãy thử tìm bằng từ khóa ngắn (vd: Cat, Bear, Cute, Meme,
                   Anime) hoặc dán trực tiếp link từ sigstick.com.
                 </p>
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
                   {packs.map((pack) => {
                     const animated = isPackAnimated(pack);
                     const isSaved = savedPackIdSet.has(pack.id);
@@ -934,52 +855,40 @@ export default function SigStickHomePage() {
                       <div
                         key={pack.id}
                         onClick={() => openPackDetail(pack)}
-                        className="group relative rounded-2xl bg-slate-900/75 hover:bg-slate-900 border border-slate-800/90 hover:border-indigo-500/50 p-4 transition-all duration-200 flex flex-col justify-between cursor-pointer shadow-lg hover:shadow-indigo-500/10"
+                        className="group relative rounded-2xl bg-white hover:bg-slate-50/60 border border-slate-200/80 hover:border-indigo-300 p-2.5 sm:p-4 transition-all duration-200 flex flex-col justify-between cursor-pointer shadow-[0_1px_4px_rgba(15,23,42,0.03)] hover:shadow-md"
                       >
                         {/* Pack Card Header */}
-                        <div className="flex items-start gap-3">
-                          <div className="w-14 h-14 rounded-2xl bg-slate-800/90 border border-slate-700/70 p-1.5 shrink-0 flex items-center justify-center overflow-hidden">
+                        <div className="flex items-start gap-2 sm:gap-3">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-50 border border-slate-200/70 p-1 shrink-0 flex items-center justify-center overflow-hidden">
                             {coverUrl ? (
                               <img
                                 src={coverUrl}
                                 alt={pack.title}
-                                className="w-full h-full object-contain group-hover:scale-110 transition duration-200"
+                                className="w-full h-full object-contain group-hover:scale-105 transition duration-200"
                                 loading="lazy"
                               />
                             ) : (
-                              <Sparkles className="w-6 h-6 text-indigo-400" />
+                              <Sparkles className="w-5 h-5 text-indigo-400" />
                             )}
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <h3 className="font-bold text-sm text-white truncate group-hover:text-indigo-300 transition">
-                                {pack.title}
-                              </h3>
-                            </div>
-                            <p className="text-xs text-slate-400 truncate mt-0.5">
-                              {pack.author || "SigStick Creator"}
-                            </p>
-                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                            <h3 className="font-bold text-xs sm:text-sm text-slate-800 truncate group-hover:text-indigo-600 transition">
+                              {pack.title}
+                            </h3>
+                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                               {animated ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-gradient-to-r from-pink-500/20 to-violet-500/20 text-pink-300 border border-pink-500/30">
-                                  <Sparkles className="w-2.5 h-2.5" />
-                                  Động (GIF)
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-violet-50 text-violet-600 border border-violet-200/80">
+                                  GIF
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-800 text-slate-300">
-                                  Tĩnh (PNG)
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-600">
+                                  PNG
                                 </span>
                               )}
-                              <span className="text-[11px] text-slate-400">
+                              <span className="text-[10px] sm:text-[11px] text-slate-500">
                                 {pack.stickers?.length || 0} hình
                               </span>
-                              {pack.download ? (
-                                <span className="text-[11px] text-slate-400 flex items-center gap-0.5">
-                                  • <Download className="w-3 h-3 inline" />{" "}
-                                  {formatCount(pack.download)}
-                                </span>
-                              ) : null}
                             </div>
                           </div>
 
@@ -990,23 +899,24 @@ export default function SigStickHomePage() {
                               e.stopPropagation();
                               toggleSavePack(pack);
                             }}
+                            aria-label={isSaved ? "Bỏ lưu bộ này" : "Lưu bộ sticker"}
                             title={isSaved ? "Bỏ lưu bộ này" : "Lưu bộ sticker"}
-                            className={`p-2 rounded-xl border transition cursor-pointer shrink-0 ${
+                            className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl border transition cursor-pointer shrink-0 ${
                               isSaved
-                                ? "bg-indigo-600/20 border-indigo-500/50 text-indigo-300"
-                                : "bg-slate-800/70 border-slate-700/60 text-slate-400 hover:text-white"
+                                ? "bg-indigo-50 border-indigo-200 text-indigo-600"
+                                : "bg-slate-50 border-slate-200/70 text-slate-400 hover:text-slate-700"
                             }`}
                           >
                             <Bookmark
-                              className={`w-4 h-4 ${
-                                isSaved ? "fill-indigo-400" : ""
+                              className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${
+                                isSaved ? "fill-indigo-600" : ""
                               }`}
                             />
                           </button>
                         </div>
 
-                        {/* 4 Preview Stickers with 1-Click Copy on Hover */}
-                        <div className="grid grid-cols-4 gap-2 my-3.5">
+                        {/* 4 Preview Stickers with 1-Click Copy */}
+                        <div className="grid grid-cols-4 gap-1.5 sm:gap-2 my-2.5 sm:my-3">
                           {previewStickers.map((st, idx) => {
                             const thumbUrl = getThumbnailUrl(st.url, 128);
                             const previewKey = normalizeCdnUrl(st.url);
@@ -1019,45 +929,40 @@ export default function SigStickHomePage() {
                                 onClick={(e) =>
                                   handleQuickPreviewCopy(e, pack, st)
                                 }
-                                title="Nhấn để Copy nhanh sticker này vào Clipboard (Ctrl+V)"
-                                className="relative aspect-square rounded-xl bg-slate-800/50 hover:bg-slate-800 border border-slate-700/40 hover:border-indigo-500/60 p-1.5 flex items-center justify-center overflow-hidden group/st transition"
+                                title="Chạm để Copy nhanh sticker này"
+                                className="relative aspect-square rounded-lg sm:rounded-xl bg-slate-50/90 hover:bg-indigo-50/50 border border-slate-200/60 hover:border-indigo-300 p-1 sm:p-1.5 flex items-center justify-center overflow-hidden group/st transition active:scale-95"
                               >
                                 <img
                                   src={thumbUrl}
                                   alt={getEmojiString(st.emoji)}
-                                  className="w-full h-full object-contain group-hover/st:scale-110 transition"
+                                  className="w-full h-full object-contain group-hover/st:scale-105 transition"
                                   loading="lazy"
                                 />
-                                <div className="absolute inset-0 bg-indigo-950/75 opacity-0 group-hover/st:opacity-100 transition flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold text-white">
-                                  {isCopying ? (
-                                    <Loader2 className="w-4 h-4 animate-spin text-indigo-300" />
-                                  ) : isCopied ? (
-                                    <>
-                                      <Check className="w-4 h-4 text-emerald-400" />
-                                      <span className="text-emerald-300">
-                                        Đã Copy
-                                      </span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Copy className="w-3.5 h-3.5 text-indigo-300" />
-                                      <span>Copy</span>
-                                    </>
-                                  )}
-                                </div>
+                                {(isCopying || isCopied) && (
+                                  <div className="absolute inset-0 bg-white/90 backdrop-blur-[1px] flex flex-col items-center justify-center gap-0.5 text-[9px] font-bold text-indigo-600">
+                                    {isCopying ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                                    ) : (
+                                      <Check className="w-4 h-4 text-teal-600" />
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
                         </div>
 
                         {/* Card Footer */}
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs">
-                          <span className="text-slate-400 text-[11px]">
-                            Nhấn hình nhỏ để Copy luôn
+                        <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 text-[11px]">
+                          <span className="text-slate-400 truncate hidden sm:inline">
+                            {pack.download ? `${formatCount(pack.download)} tải` : "Chạm hình để Copy"}
                           </span>
-                          <span className="font-semibold text-indigo-400 group-hover:text-indigo-300 flex items-center gap-1">
-                            Xem trọn bộ ({pack.stickers?.length || 0})
-                            <ChevronRight className="w-3.5 h-3.5" />
+                          <span className="text-slate-400 truncate sm:hidden text-[10px]">
+                            Chạm để mở
+                          </span>
+                          <span className="font-semibold text-indigo-600 flex items-center gap-0.5 ml-auto">
+                            <span>Mở bộ</span>
+                            <ChevronRight className="w-3 h-3" />
                           </span>
                         </div>
                       </div>
@@ -1067,7 +972,7 @@ export default function SigStickHomePage() {
 
                 {/* Load More Pagination Button */}
                 {nextCursor && !activeQuery && (
-                  <div className="flex justify-center pt-4">
+                  <div className="flex justify-center pt-3">
                     <button
                       onClick={() =>
                         fetchPacks({
@@ -1078,15 +983,15 @@ export default function SigStickHomePage() {
                         })
                       }
                       disabled={isLoadingMore}
-                      className="px-6 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-sm border border-slate-700 flex items-center gap-2 transition cursor-pointer disabled:opacity-50"
+                      className="min-h-[44px] px-6 py-2.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm border border-slate-200 shadow-xs flex items-center gap-2 transition cursor-pointer disabled:opacity-50 active:scale-95"
                     >
                       {isLoadingMore ? (
                         <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
                           Đang tải thêm...
                         </>
                       ) : (
-                        <>Tải thêm bộ Sticker</>
+                        <>Xem thêm bộ Sticker</>
                       )}
                     </button>
                   </div>
@@ -1100,41 +1005,41 @@ export default function SigStickHomePage() {
             TAB 2: FEATURED COLLECTIONS (BỘ SƯU TẬP CHỌN LỌC)
            ========================================================= */}
         {mainTab === "collections" && (
-          <div className="space-y-8">
+          <div className="space-y-5">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-indigo-400" />
-                  Bộ sưu tập Sticker theo chủ đề
+                <h2 className="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-indigo-500" />
+                  Bộ sưu tập theo chủ đề
                 </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 mt-0.5">
                   Tổng hợp các chủ đề được yêu thích nhất trên SigStick
                 </p>
               </div>
             </div>
 
             {isLoading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-7 h-7 text-indigo-500 animate-spin" />
               </div>
             ) : (
-              <div className="space-y-8">
+              <div className="space-y-4">
                 {collections.map((col) => (
                   <div
                     key={col.id}
-                    className="rounded-2xl bg-slate-900/60 border border-slate-800 p-5 space-y-4"
+                    className="rounded-2xl bg-white border border-slate-200/80 p-3.5 sm:p-5 space-y-3 shadow-xs"
                   >
                     <div className="flex items-center justify-between">
-                      <h3 className="text-base font-bold text-white flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-amber-400" />
+                      <h3 className="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-amber-500" />
                         {col.title}
                       </h3>
                       <span className="text-xs text-slate-400">
-                        {col.items?.length || 0} bộ sticker
+                        {col.items?.length || 0} bộ
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                       {(col.items || []).map((item) => {
                         const pack = item.pack;
                         if (!pack) return null;
@@ -1147,20 +1052,19 @@ export default function SigStickHomePage() {
                           <div
                             key={pack.id}
                             onClick={() => openPackDetail(pack)}
-                            className="rounded-xl bg-slate-950/70 hover:bg-slate-800/80 border border-slate-800 hover:border-indigo-500/40 p-3 flex items-center gap-3 cursor-pointer transition"
+                            className="rounded-xl bg-slate-50/80 hover:bg-indigo-50/40 border border-slate-200/70 hover:border-indigo-300 p-2.5 flex items-center gap-2.5 cursor-pointer transition active:scale-95"
                           >
                             <img
                               src={coverUrl}
                               alt={pack.title}
-                              className="w-12 h-12 object-contain rounded-lg bg-slate-900 p-1 shrink-0"
+                              className="w-11 h-11 object-contain rounded-lg bg-white border border-slate-200/60 p-1 shrink-0"
                             />
                             <div className="min-w-0 flex-1">
-                              <p className="text-xs font-bold text-white truncate">
+                              <p className="text-xs font-bold text-slate-800 truncate">
                                 {pack.title}
                               </p>
-                              <p className="text-[11px] text-slate-400 truncate">
-                                {pack.stickers?.length || 0} stickers •{" "}
-                                {formatCount(pack.download)} tải
+                              <p className="text-[11px] text-slate-500 truncate">
+                                {pack.stickers?.length || 0} hình
                               </p>
                             </div>
                           </div>
@@ -1178,25 +1082,24 @@ export default function SigStickHomePage() {
             TAB 3 & 5: FAVORITE STICKERS & RECENTLY USED STICKERS
            ========================================================= */}
         {(mainTab === "favorites" || mainTab === "recent") && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+          <div className="space-y-3.5">
+            <div className="flex items-center justify-between gap-2">
               <div>
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
                   {mainTab === "favorites" ? (
                     <>
-                      <Heart className="w-5 h-5 text-pink-500 fill-pink-500" />
-                      Sticker Yêu thích của bạn ({favoriteStickers.length})
+                      <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
+                      Sticker Yêu thích ({favoriteStickers.length})
                     </>
                   ) : (
                     <>
-                      <Clock className="w-5 h-5 text-indigo-400" />
-                      Sticker vừa sử dụng gần đây ({recentStickers.length})
+                      <Clock className="w-5 h-5 text-indigo-500" />
+                      Dùng gần đây ({recentStickers.length})
                     </>
                   )}
                 </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Nhấn vào từng sticker để Copy PNG ngay lập tức, Chia sẻ GIF
-                  hoặc mở Phòng Studio chế chữ.
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Chạm vào sticker để Copy PNG ngay hoặc mở Studio chế chữ.
                 </p>
               </div>
 
@@ -1207,7 +1110,7 @@ export default function SigStickHomePage() {
                     localStorage.removeItem("sigstick_vn_recent_stickers");
                     showToast("Đã xóa lịch sử sticker gần đây", "info");
                   }}
-                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/60 text-slate-300 hover:text-rose-300 text-xs font-medium flex items-center gap-1.5 border border-slate-700 cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-600 text-xs font-medium flex items-center gap-1.5 border border-slate-200 cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   Xóa lịch sử
@@ -1217,8 +1120,8 @@ export default function SigStickHomePage() {
 
             {(mainTab === "favorites" ? favoriteStickers : recentStickers)
               .length === 0 ? (
-              <div className="rounded-2xl bg-slate-900/50 border border-slate-800 p-12 text-center space-y-3">
-                <p className="text-base font-semibold text-slate-300">
+              <div className="rounded-2xl bg-white border border-slate-200/80 p-10 text-center space-y-3">
+                <p className="text-sm font-semibold text-slate-600">
                   {mainTab === "favorites"
                     ? "Bạn chưa thả tim lưu riêng sticker nào."
                     : "Bạn chưa copy hoặc chia sẻ sticker nào gần đây."}
@@ -1227,11 +1130,11 @@ export default function SigStickHomePage() {
                   onClick={() => setMainTab("discover")}
                   className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold cursor-pointer"
                 >
-                  Khám phá kho Sticker ngay
+                  Khám phá kho Sticker
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5">
                 {(mainTab === "favorites"
                   ? favoriteStickers
                   : recentStickers
@@ -1240,14 +1143,14 @@ export default function SigStickHomePage() {
                   return (
                     <div
                       key={entry.key}
-                      className="group relative rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/60 p-3 flex flex-col items-center justify-between gap-2 transition"
+                      className="group relative rounded-2xl bg-white border border-slate-200/80 hover:border-indigo-300 p-2.5 flex flex-col items-center justify-between gap-2 transition shadow-2xs"
                     >
                       <div
                         onClick={async () => {
                           try {
                             await copyStickerToClipboard(entry.sticker.url);
                             showToast(
-                              "Đã Copy PNG! Dán (Ctrl+V) vào Zalo / Messenger ngay.",
+                              "Đã Copy PNG! Dán vào Zalo / Messenger ngay.",
                               "success"
                             );
                           } catch {
@@ -1257,7 +1160,7 @@ export default function SigStickHomePage() {
                             });
                           }
                         }}
-                        className="w-full aspect-square flex items-center justify-center cursor-pointer"
+                        className="w-full aspect-square flex items-center justify-center cursor-pointer active:scale-95 transition"
                       >
                         <img
                           src={thumbUrl}
@@ -1266,7 +1169,7 @@ export default function SigStickHomePage() {
                         />
                       </div>
 
-                      <div className="w-full flex items-center justify-between gap-1 pt-1 border-t border-slate-800/80">
+                      <div className="w-full flex items-center justify-between gap-1 pt-1.5 border-t border-slate-100">
                         <button
                           onClick={async () => {
                             try {
@@ -1280,7 +1183,7 @@ export default function SigStickHomePage() {
                             }
                           }}
                           title="Copy PNG"
-                          className="flex-1 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white text-[10px] font-bold flex items-center justify-center gap-1 transition cursor-pointer"
+                          className="flex-1 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white text-[10px] font-bold flex items-center justify-center gap-1 transition cursor-pointer"
                         >
                           <Copy className="w-3 h-3" />
                           Copy
@@ -1293,7 +1196,7 @@ export default function SigStickHomePage() {
                             })
                           }
                           title="Mở Studio / Tải GIF"
-                          className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer"
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 cursor-pointer"
                         >
                           <Wand2 className="w-3 h-3" />
                         </button>
@@ -1302,12 +1205,12 @@ export default function SigStickHomePage() {
                             toggleFavoriteSticker(entry.sticker, entry.pack)
                           }
                           title="Bỏ yêu thích"
-                          className="p-1 rounded-lg bg-slate-800 hover:bg-pink-600/20 text-pink-400 cursor-pointer"
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-rose-500 cursor-pointer"
                         >
                           <Heart
                             className={`w-3 h-3 ${
                               favoriteKeySet.has(entry.key)
-                                ? "fill-pink-500"
+                                ? "fill-rose-500"
                                 : ""
                             }`}
                           />
@@ -1325,26 +1228,26 @@ export default function SigStickHomePage() {
             TAB 4: SAVED PACKS (BỘ STICKER ĐÃ LƯU)
            ========================================================= */}
         {mainTab === "saved" && (
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <Bookmark className="w-5 h-5 text-indigo-400 fill-indigo-400" />
+          <div className="space-y-3.5">
+            <h2 className="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
+              <Bookmark className="w-5 h-5 text-indigo-600 fill-indigo-600" />
               Bộ Sticker đã lưu ({savedPacks.length})
             </h2>
 
             {savedPacks.length === 0 ? (
-              <div className="rounded-2xl bg-slate-900/50 border border-slate-800 p-12 text-center space-y-3">
-                <p className="text-base font-semibold text-slate-300">
+              <div className="rounded-2xl bg-white border border-slate-200/80 p-10 text-center space-y-3">
+                <p className="text-sm font-semibold text-slate-600">
                   Bạn chưa lưu bộ sticker nào.
                 </p>
                 <button
                   onClick={() => setMainTab("discover")}
                   className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold cursor-pointer"
                 >
-                  Khám phá bộ Sticker ngay
+                  Khám phá bộ Sticker
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {savedPacks.map((pack) => {
                   const coverUrl = pack.cover?.url
                     ? getThumbnailUrl(pack.cover.url, 128)
@@ -1355,19 +1258,19 @@ export default function SigStickHomePage() {
                     <div
                       key={pack.id}
                       onClick={() => openPackDetail(pack)}
-                      className="rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 p-4 flex items-center justify-between gap-3 cursor-pointer transition"
+                      className="rounded-2xl bg-white border border-slate-200/80 hover:border-indigo-300 p-3.5 flex items-center justify-between gap-3 cursor-pointer transition shadow-2xs"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <img
                           src={coverUrl}
                           alt={pack.title}
-                          className="w-14 h-14 object-contain rounded-xl bg-slate-800 p-1.5"
+                          className="w-12 h-12 object-contain rounded-xl bg-slate-50 border border-slate-200/60 p-1"
                         />
                         <div className="min-w-0">
-                          <h3 className="font-bold text-sm text-white truncate">
+                          <h3 className="font-bold text-sm text-slate-800 truncate">
                             {pack.title}
                           </h3>
-                          <p className="text-xs text-slate-400 truncate">
+                          <p className="text-xs text-slate-500 truncate">
                             {pack.author} • {pack.stickers?.length || 0} hình
                           </p>
                         </div>
@@ -1377,7 +1280,8 @@ export default function SigStickHomePage() {
                           e.stopPropagation();
                           toggleSavePack(pack);
                         }}
-                        className="p-2 rounded-xl bg-slate-800 hover:bg-rose-950/60 text-slate-300 hover:text-rose-300 cursor-pointer"
+                        aria-label="Xóa bộ đã lưu"
+                        className="p-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -1390,19 +1294,97 @@ export default function SigStickHomePage() {
         )}
       </main>
 
+      {/* Mobile Fixed Bottom Navigation Bar (<= 5 items, 48px+ touch target, safe area) */}
+      <nav
+        aria-label="Điều hướng chính"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-xl border-t border-slate-200/90 shadow-[0_-2px_10px_rgba(15,23,42,0.04)] pb-safe"
+      >
+        <div className="grid grid-cols-5 h-14 px-1">
+          <button
+            onClick={() => setMainTab("discover")}
+            className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition cursor-pointer ${
+              mainTab === "discover"
+                ? "text-indigo-600"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <Flame className="w-4 h-4" />
+            <span>Khám phá</span>
+          </button>
+
+          <button
+            onClick={() => setMainTab("collections")}
+            className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition cursor-pointer ${
+              mainTab === "collections"
+                ? "text-indigo-600"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            <span>Chủ đề</span>
+          </button>
+
+          <button
+            onClick={() => setMainTab("favorites")}
+            className={`relative flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition cursor-pointer ${
+              mainTab === "favorites"
+                ? "text-rose-600"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <Heart className={`w-4 h-4 ${mainTab === "favorites" ? "fill-rose-500" : ""}`} />
+            <span>Yêu thích</span>
+            {favoriteStickers.length > 0 && (
+              <span className="absolute top-1.5 right-4 min-w-[15px] h-[15px] px-1 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
+                {favoriteStickers.length > 99 ? "99+" : favoriteStickers.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setMainTab("saved")}
+            className={`relative flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition cursor-pointer ${
+              mainTab === "saved"
+                ? "text-indigo-600"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <Bookmark className={`w-4 h-4 ${mainTab === "saved" ? "fill-indigo-600" : ""}`} />
+            <span>Đã lưu</span>
+            {savedPacks.length > 0 && (
+              <span className="absolute top-1.5 right-4 min-w-[15px] h-[15px] px-1 rounded-full bg-indigo-600 text-white text-[9px] font-bold flex items-center justify-center">
+                {savedPacks.length > 99 ? "99+" : savedPacks.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setMainTab("recent")}
+            className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition cursor-pointer ${
+              mainTab === "recent"
+                ? "text-indigo-600"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            <span>Gần đây</span>
+          </button>
+        </div>
+      </nav>
+
       {/* Footer */}
-      <footer className="relative z-10 border-t border-slate-800/80 mt-12 py-8 px-4 sm:px-6 text-xs text-slate-400">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
-            <span className="font-bold text-slate-200 tracking-tight">SigStick Hub VN</span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-semibold">
+      <footer className="relative z-10 border-t border-slate-200/80 bg-white/60 mt-8 py-6 px-4 sm:px-6 text-xs text-slate-500">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+            <span className="font-bold text-slate-700 tracking-tight">SigStick Hub VN</span>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-600 border border-indigo-200/70 font-semibold">
               {APP_VERSION}
             </span>
-            <span className="text-slate-600 hidden sm:inline">•</span>
-            <span className="text-slate-400">Kho Sticker đa nền tảng tối ưu hoá cho Zalo & Messenger</span>
+            <span className="text-slate-300 hidden sm:inline">•</span>
+            <span className="text-slate-500">Kho Sticker tối ưu cho Zalo & Messenger</span>
           </div>
-          <p className="text-slate-500 text-[11px]">
-            Tự động giải mã & chuyển đổi PNG trong suốt & GIF động 1 chạm
+          <p className="text-slate-400 text-[11px]">
+            Tự động tách nền PNG trong suốt & GIF động 1 chạm
           </p>
         </div>
       </footer>
@@ -1451,99 +1433,87 @@ export default function SigStickHomePage() {
       {/* Guide Modal: How to send stickers to Zalo & Messenger */}
       {showGuideModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-xs p-0 sm:p-4"
           onClick={() => setShowGuideModal(false)}
         >
           <div
-            className="w-full max-w-2xl rounded-3xl bg-slate-900 border border-slate-700/80 shadow-2xl overflow-hidden"
+            className="w-full max-w-xl rounded-t-3xl sm:rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/80">
-              <div className="flex items-center gap-2.5">
-                <HelpCircle className="w-5 h-5 text-indigo-400" />
-                <h3 className="font-bold text-white text-base">
-                  Mẹo gửi Sticker qua Zalo & Messenger nhanh nhất
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/70">
+              <div className="flex items-center gap-2">
+                <HelpCircle className="w-5 h-5 text-indigo-600" />
+                <h3 className="font-bold text-slate-800 text-sm sm:text-base">
+                  Mẹo gửi Sticker qua Zalo & Messenger
                 </h3>
               </div>
               <button
                 onClick={() => setShowGuideModal(false)}
-                className="p-1.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer"
+                className="p-2 rounded-full bg-slate-200/70 hover:bg-slate-200 text-slate-600 cursor-pointer"
+                aria-label="Đóng hướng dẫn"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-6 space-y-5 text-sm text-slate-300 max-h-[80vh] overflow-y-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-2xl bg-slate-800/60 border border-slate-700/70 p-4 space-y-2.5">
-                  <div className="flex items-center gap-2 text-indigo-300 font-bold">
+            <div className="p-5 space-y-4 text-sm text-slate-600 max-h-[78vh] overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-slate-50 border border-slate-200/70 p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-indigo-600 font-bold text-xs sm:text-sm">
+                    <Smartphone className="w-4 h-4" />
+                    <span>Trên Điện thoại (iOS / Android)</span>
+                  </div>
+                  <ul className="space-y-1.5 text-xs text-slate-600 list-disc pl-4 leading-relaxed">
+                    <li>
+                      <strong>Copy dán thẳng:</strong> Chạm vào bất kỳ sticker
+                      nào để Copy ảnh đã tách nền, sau đó mở khung chat{" "}
+                      <strong>Zalo / Messenger</strong> và chọn <strong>Dán</strong>.
+                    </li>
+                    <li>
+                      <strong>Gửi ảnh động GIF:</strong> Mở bộ sticker, chọn{" "}
+                      <strong>Gửi GIF</strong> rồi chạm vào sticker để mở bảng
+                      Chia sẻ trực tiếp sang Zalo/Messenger.
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 border border-slate-200/70 p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-teal-600 font-bold text-xs sm:text-sm">
                     <Monitor className="w-4 h-4" />
                     <span>Trên Máy tính (PC / Laptop)</span>
                   </div>
-                  <ul className="space-y-2 text-xs text-slate-300 list-disc pl-4 leading-relaxed">
+                  <ul className="space-y-1.5 text-xs text-slate-600 list-disc pl-4 leading-relaxed">
                     <li>
-                      <strong>Cách 1 (Sticker tĩnh PNG - 1 giây):</strong> Nhấn
-                      trực tiếp vào bất kỳ sticker nào để{" "}
-                      <strong>Copy PNG</strong>, sau đó chuyển qua cửa sổ chat{" "}
-                      <strong>Zalo PC</strong> hoặc{" "}
-                      <strong>Messenger Web</strong> và bấm{" "}
-                      <kbd className="px-1.5 py-0.5 rounded bg-slate-950 border border-slate-700 text-indigo-300">
+                      <strong>Copy 1 chạm:</strong> Nhấn vào sticker bất kỳ rồi
+                      qua cửa sổ <strong>Zalo PC</strong> hoặc{" "}
+                      <strong>Messenger</strong> bấm{" "}
+                      <kbd className="px-1.5 py-0.5 rounded bg-white border border-slate-300 text-slate-700 font-mono text-[11px]">
                         Ctrl + V
                       </kbd>
                       .
                     </li>
                     <li>
-                      <strong>Cách 2 (Sticker động GIF):</strong> Mở bộ sticker
-                      động, chọn chế độ <strong>Studio / Chế chữ</strong> và
-                      chuyển sang tab <strong>Ảnh động GIF</strong>. Bạn có thể{" "}
-                      <strong>Kéo-thả trực tiếp ảnh GIF</strong> từ khung xem
-                      trước thả vào khung chat Zalo/Messenger hoặc tải file{" "}
-                      <code>.gif</code>.
-                    </li>
-                  </ul>
-                </div>
-
-                <div className="rounded-2xl bg-slate-800/60 border border-slate-700/70 p-4 space-y-2.5">
-                  <div className="flex items-center gap-2 text-pink-300 font-bold">
-                    <Smartphone className="w-4 h-4" />
-                    <span>Trên Điện thoại (iOS / Android)</span>
-                  </div>
-                  <ul className="space-y-2 text-xs text-slate-300 list-disc pl-4 leading-relaxed">
-                    <li>
-                      <strong>Gửi qua Menu Chia sẻ (Share Sheet):</strong> Mở bộ
-                      sticker, chuyển thanh công cụ sang chế độ{" "}
-                      <strong>Gửi GIF / Share</strong> rồi chạm vào sticker.
-                      Menu chia sẻ của điện thoại sẽ bật lên để bạn chọn{" "}
-                      <strong>Zalo</strong> hoặc <strong>Messenger</strong> gửi
-                      ngay không cần lưu máy!
-                    </li>
-                    <li>
-                      <strong>Cài đặt như App (PWA):</strong> Chọn{" "}
-                      <em>&ldquo;Thêm vào màn hình chính&rdquo;</em> trên Safari
-                      hoặc Chrome để mở ứng dụng full màn hình mọi lúc.
+                      <strong>Kéo thả GIF động:</strong> Mở Studio để kéo thả
+                      trực tiếp ảnh GIF động vào cửa sổ chat.
                     </li>
                   </ul>
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-indigo-950/40 border border-indigo-500/30 p-4 text-xs text-indigo-200 space-y-1">
-                <p className="font-bold text-indigo-300">
-                  💡 Vì sao cần tự động chuyển đổi định dạng?
+              <div className="rounded-2xl bg-indigo-50/70 border border-indigo-100 p-3.5 text-xs text-indigo-900 space-y-1">
+                <p className="font-bold text-indigo-700">
+                  Tự động tách nền thông minh
                 </p>
-                <p className="leading-relaxed">
-                  SigStick lưu trữ sticker gốc dưới dạng <code>.webp</code> và{" "}
-                  <code>APNG</code>. Khi gửi trực tiếp vào Zalo hoặc Messenger,
-                  các định dạng này thường bị lỗi đứng hình hoặc biến thành file
-                  đính kèm. Hệ thống của chúng tôi tự động giải mã từng khung
-                  hình sang chuẩn <strong>PNG trong suốt</strong> và{" "}
-                  <strong>GIF lặp vô hạn</strong> tương thích 100% với Zalo &
-                  Messenger!
+                <p className="leading-relaxed text-indigo-800/90">
+                  Hệ thống tự động loại bỏ nền trắng/nền đặc của sticker và khử
+                  viền răng cưa để khi gửi qua Zalo chỉ hiển thị đúng hình
+                  nhân vật trong suốt.
                 </p>
               </div>
 
-              <div className="pt-2 flex items-center justify-between text-xs text-slate-500 border-t border-slate-800">
+              <div className="pt-2 flex items-center justify-between text-xs text-slate-400 border-t border-slate-100">
                 <span>SigStick Hub VN</span>
-                <span className="font-mono bg-slate-800 px-2 py-0.5 rounded text-indigo-300 border border-slate-700/60 font-semibold text-[11px]">
+                <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-indigo-600 border border-slate-200 font-semibold text-[11px]">
                   {APP_VERSION}
                 </span>
               </div>
@@ -1552,24 +1522,28 @@ export default function SigStickHomePage() {
         </div>
       )}
 
-      {/* Floating Toast Notification */}
+      {/* Floating Toast Notification (Positioned above mobile bottom nav) */}
       {toast && (
-        <div className="fixed bottom-5 right-5 z-50 max-w-sm animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-16 lg:bottom-5 inset-x-3 sm:inset-x-auto sm:right-5 z-50 sm:max-w-sm animate-in fade-in slide-in-from-bottom-4 duration-200 pointer-events-none"
+        >
           <div
-            className={`px-4 py-3 rounded-2xl shadow-2xl border flex items-center gap-3 text-xs sm:text-sm font-medium ${
+            className={`px-4 py-3 rounded-2xl shadow-lg border flex items-center gap-2.5 text-xs sm:text-sm font-semibold backdrop-blur-md ${
               toast.type === "success"
-                ? "bg-emerald-950/95 border-emerald-500/50 text-emerald-100"
+                ? "bg-teal-600/95 border-teal-500 text-white"
                 : toast.type === "error"
-                ? "bg-rose-950/95 border-rose-500/50 text-rose-100"
-                : "bg-slate-900/95 border-indigo-500/50 text-indigo-100"
+                ? "bg-rose-600/95 border-rose-500 text-white"
+                : "bg-slate-800/95 border-slate-700 text-white"
             }`}
           >
             {toast.type === "success" ? (
-              <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+              <Check className="w-4 h-4 text-teal-200 shrink-0" />
             ) : (
-              <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
+              <Sparkles className="w-4 h-4 text-indigo-300 shrink-0" />
             )}
-            <span>{toast.message}</span>
+            <span className="truncate">{toast.message}</span>
           </div>
         </div>
       )}

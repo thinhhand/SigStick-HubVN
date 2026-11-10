@@ -1,12 +1,12 @@
 {
   "name": "SigStick VN - Gửi Sticker Zalo & Messenger",
   "short_name": "SigStick VN",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Kho Sticker khổng lồ từ SigStick, chuyển đổi PNG & GIF tự động để gửi qua Zalo, Messenger, Telegram chỉ với 1 chạm.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#090d16",
-  "theme_color": "#6366f1",
+  "background_color": "#f4f7fb",
+  "theme_color": "#4f46e5",
   "icons": [
     {
       "src": "/icon.svg",
