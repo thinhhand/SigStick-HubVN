@@ -280,13 +280,13 @@ export default function StickerStudioModal({
     }
   };
 
-  // Visual preview size in simulated chat box so user sees realistic Zalo Mobile proportion
+  // Visual preview size in simulated chat box
   const previewDimensionClass =
-    stickerSize === 180
-      ? 'w-28 h-28 sm:w-32 sm:h-32'
-      : stickerSize === 220
-        ? 'w-36 h-36 sm:w-40 sm:h-40'
-        : 'w-44 h-44 sm:w-48 sm:h-48';
+    stickerSize === 320
+      ? 'w-32 h-32 sm:w-36 sm:h-36'
+      : stickerSize === 512
+        ? 'w-36 h-36 sm:w-44 sm:h-44'
+        : 'w-40 h-40 sm:w-48 sm:h-48';
 
   return (
     <div
@@ -310,7 +310,7 @@ export default function StickerStudioModal({
             </div>
             <div className="min-w-0">
               <h3 className="font-bold text-sm sm:text-base text-slate-800 truncate">
-                Sticker Studio • Chuẩn Zalo (GIF & PNG)
+                Sticker Studio • Chuẩn Zalo Ultra HD
               </h3>
               <p className="text-[11px] text-slate-500 truncate">
                 Bộ: <span className="text-slate-700 font-medium">{pack.title}</span>
@@ -358,7 +358,7 @@ export default function StickerStudioModal({
                   }`}
                 >
                   <Film className="w-3.5 h-3.5" />
-                  GIF Động
+                  GIF Động HD
                 </button>
                 <button
                   type="button"
@@ -370,7 +370,7 @@ export default function StickerStudioModal({
                   }`}
                 >
                   <ImageIcon className="w-3.5 h-3.5" />
-                  PNG Tĩnh
+                  PNG Ultra HD
                 </button>
               </div>
 
@@ -412,7 +412,7 @@ export default function StickerStudioModal({
               </div>
             </div>
 
-            {/* Simulated Chat Canvas (Shows realistic Zalo Mobile sticker size & background) */}
+            {/* Simulated Chat Canvas */}
             <div
               className={`relative rounded-2xl p-4 min-h-[195px] sm:min-h-[245px] flex flex-col items-center justify-center transition-colors overflow-hidden border ${
                 chatPreviewTheme === 'zalo-mobile'
@@ -441,7 +441,7 @@ export default function StickerStudioModal({
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/60 rounded-xl backdrop-blur-[2px]">
                       <Loader2 className="w-6 h-6 animate-spin text-[#0068ff] mb-1" />
                       <span className="text-[10px] font-semibold text-slate-700 bg-white/90 px-2 py-0.5 rounded shadow-2xs">
-                        Đang tạo GIF chuẩn Zalo...
+                        Đang tạo GIF HD chuẩn Zalo...
                       </span>
                     </div>
                   )}
@@ -488,15 +488,15 @@ export default function StickerStudioModal({
           {/* Right Column: Customization Controls & Primary CTAs */}
           <div className="lg:col-span-6 p-3.5 sm:p-5 flex flex-col justify-between space-y-3.5 bg-white">
             <div className="space-y-3">
-              {/* 1. Sticker Size Selector (Mobile-friendly compact sizes) */}
+              {/* 1. Sticker Resolution Selector */}
               <div>
                 <label className="flex items-center justify-between text-xs font-semibold text-slate-600 mb-1.5">
                   <span className="flex items-center gap-1.5">
                     <Maximize2 className="w-3.5 h-3.5 text-indigo-500" />
-                    Kích thước chuẩn Zalo Mobile
+                    Độ phân giải Sticker
                   </span>
                   <span className="text-[10px] font-medium text-indigo-600">
-                    Mặc định: Nhỏ gọn (180px)
+                    Mặc định: Tối đa (1024px Ultra HD)
                   </span>
                 </label>
                 <div className="grid grid-cols-3 gap-1.5">

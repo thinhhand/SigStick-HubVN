@@ -102,7 +102,7 @@ export default function SigStickHomePage() {
   const [savedPacks, setSavedPacks] = useState<StickerPack[]>([]);
   const [recentStickers, setRecentStickers] = useState<SavedStickerEntry[]>([]);
   const [copyBgMode, setCopyBgMode] = useState<BgMode>("zalo-mobile");
-  const [stickerSize, setStickerSize] = useState<StickerSizePreset>(180);
+  const [stickerSize, setStickerSize] = useState<StickerSizePreset>(1024);
 
   // Modals & Active Selections
   const [selectedPack, setSelectedPack] = useState<StickerPack | null>(null);
@@ -182,14 +182,14 @@ export default function SigStickHomePage() {
   };
 
   const handleToggleStickerSize = () => {
-    const order: StickerSizePreset[] = [180, 220, 320];
+    const order: StickerSizePreset[] = [1024, 512, 320];
     const nextIdx = (order.indexOf(stickerSize) + 1) % order.length;
     const next = order[nextIdx];
     setStickerSize(next);
     setDefaultStickerSize(next);
     const found = STICKER_SIZE_OPTIONS.find((o) => o.size === next);
     showToast(
-      `Đã đổi cỡ Sticker: ${found?.label || `${next}px`}`,
+      `Đã đổi độ phân giải Sticker: ${found?.label || `${next}px`}`,
       "info"
     );
   };
@@ -537,7 +537,7 @@ export default function SigStickHomePage() {
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 hidden sm:block">
-                Chuẩn GIF & PNG Zalo • Cỡ 180px • Có viền • Không nền đen/trắng
+                Chuẩn GIF & PNG Zalo • Độ phân giải Max Ultra HD • Có viền • Không nền đen/trắng
               </p>
             </div>
           </div>
@@ -605,16 +605,16 @@ export default function SigStickHomePage() {
           <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               onClick={handleToggleStickerSize}
-              title="Đổi kích thước Sticker khi gửi qua Zalo / Messenger"
+              title="Đổi độ phân giải Sticker khi gửi qua Zalo / Messenger"
               className="min-h-[38px] flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl bg-indigo-50/90 hover:bg-indigo-100/80 text-indigo-700 border border-indigo-200/90 text-[11px] sm:text-xs font-semibold transition cursor-pointer active:scale-95"
             >
               <Maximize2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
               <span>
-                {stickerSize === 180
-                  ? "Cỡ Nhỏ (180px)"
-                  : stickerSize === 220
-                  ? "Cỡ Vừa (220px)"
-                  : "Cỡ Lớn (320px)"}
+                {stickerSize === 1024
+                  ? "Max HD (1024px)"
+                  : stickerSize === 512
+                  ? "Chuẩn HD (512px)"
+                  : "Nhanh (320px)"}
               </span>
             </button>
 

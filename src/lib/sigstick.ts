@@ -59,36 +59,33 @@ export interface FeaturedCollection {
 export const SIGSTICK_API_HOST = 'https://api.sigstick.com';
 
 /**
- * Chuẩn hóa URL từ CDN của SigStick giống hàm dE() trong mã nguồn gốc
+ * Chuẩn hóa URL từ CDN của SigStick và luôn lấy bản gốc độ phân giải tối đa (loại bỏ hậu tố .thumb128 / .thumb256 nếu có)
  */
 export function normalizeCdnUrl(input?: { url?: string } | string | null): string {
   if (!input) return '';
   const rawUrl = typeof input === 'string' ? input : input.url;
   if (!rawUrl) return '';
 
+  let normalized = rawUrl;
   const prefixes = ['https://cdn.cdnstep.com/', 'https://imgcdn.sigstick.com/'];
   for (const prefix of prefixes) {
-    if (rawUrl.startsWith(prefix)) {
-      return 'https://cdn2.cdnstep.com/' + rawUrl.slice(prefix.length);
+    if (normalized.startsWith(prefix)) {
+      normalized = 'https://cdn2.cdnstep.com/' + normalized.slice(prefix.length);
+      break;
     }
   }
-  return rawUrl;
+
+  return normalized.replace(/\.thumb(?:128|256)\.(png|webp|gif)$/i, '.$1');
 }
 
 /**
- * Tạo URL thumbnail (128 hoặc 256) giống hàm O2() của SigStick
+ * Luôn trả về URL ảnh gốc độ phân giải tối đa từ CDN để hiển thị sắc nét tuyệt đối trên màn hình Retina/Mobile
  */
 export function getThumbnailUrl(
   input?: { url?: string } | string | null,
-  size: 128 | 256 = 128
+  _size: 128 | 256 = 256
 ): string {
-  const url = normalizeCdnUrl(input);
-  if (!url) return '';
-  const parts = url.split('.');
-  const ext = parts.pop() ?? '';
-  parts.push(`thumb${size}`);
-  parts.push(ext);
-  return parts.join('.');
+  return normalizeCdnUrl(input);
 }
 
 /**
@@ -136,11 +133,9 @@ export function formatCount(count?: number): string {
  */
 export function extractPackIdFromInput(input: string): string | null {
   const trimmed = input.trim();
-  // Khớp URL dạng /pack/WkFD7dSfBGVaFmApnZrw-ten-bo-sticker
   const urlMatch = trimmed.match(/\/pack\/([A-Za-z0-9]{15,28})(?:-|$|\/|\?)/);
   if (urlMatch) return urlMatch[1];
 
-  // Khớp trực tiếp ID 20 ký tự của SigStick
   if (/^[A-Za-z0-9]{18,24}$/.test(trimmed)) {
     return trimmed;
   }

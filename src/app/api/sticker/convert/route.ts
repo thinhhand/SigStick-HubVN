@@ -65,7 +65,6 @@ function autoRemoveBackgroundRgba(
     [width - 1, Math.floor(height / 2)],
   ];
 
-  // Kiểm tra các điểm sát biên xem có nền đặc (alpha > 200) không
   const opaqueSamples: Array<[number, number, number, number, number]> = [];
   for (const [cx, cy] of samplePoints) {
     if (cx < 0 || cx >= width || cy < 0 || cy >= height) continue;
@@ -76,7 +75,6 @@ function autoRemoveBackgroundRgba(
     }
   }
 
-  // Nếu ít nhất 3 điểm biên có màu đồng nhất -> ảnh có nền đặc cần tách tự động
   if (opaqueSamples.length >= 3) {
     let bestCluster: Array<[number, number, number, number, number]> = [];
     for (let i = 0; i < opaqueSamples.length; i++) {
@@ -247,151 +245,186 @@ function autoRemoveBackgroundRgba(
 }
 
 /**
- * Thu phóng buffer RGBA có chừa lề an toàn (padding) để viền trắng Die-Cut không bao giờ bị cắt sát mép,
- * đồng thời dùng nội suy Bilinear trọng số Alpha để rìa nhân vật luôn mịn, không bị ám đen.
+ * Nâng độ phân giải Sticker lên tối đa bằng thuật toán nội suy Lanczos-3 (sharp.kernel.lanczos3)
+ * kết hợp làm nét thông minh (Unsharp Masking) và chừa lề an toàn cho viền Die-Cut.
  */
-function resizeRgbaWithPadding(
+async function resizeRgbaHighRes(
   src: Uint8Array,
   srcW: number,
   srcH: number,
   dstSize: number,
-  padRatio = 0.08,
+  padRatio = 0.075,
   yShift = 0
-): Uint8Array {
-  const dst = new Uint8Array(dstSize * dstSize * 4);
-  const avail = Math.max(16, Math.round(dstSize * (1 - padRatio * 2)));
-  const scale = Math.min(avail / srcW, avail / srcH);
-  const drawW = Math.max(1, Math.round(srcW * scale));
-  const drawH = Math.max(1, Math.round(srcH * scale));
-  const offsetX = Math.floor((dstSize - drawW) / 2);
-  const offsetY = Math.floor((dstSize - drawH) / 2) + yShift;
+): Promise<Uint8Array> {
+  const pad = Math.max(4, Math.round(dstSize * padRatio));
+  const avail = Math.max(32, dstSize - pad * 2);
+  const topPad = Math.max(0, Math.min(dstSize - avail, pad + yShift));
+  const bottomPad = Math.max(0, dstSize - avail - topPad);
+  const leftPad = pad;
+  const rightPad = Math.max(0, dstSize - avail - leftPad);
 
-  for (let y = 0; y < drawH; y++) {
-    const dy = y + offsetY;
-    if (dy < 0 || dy >= dstSize) continue;
+  const outBuf = await sharp(Buffer.from(src.buffer, src.byteOffset, src.byteLength), {
+    raw: { width: srcW, height: srcH, channels: 4 },
+  })
+    .resize(avail, avail, {
+      fit: 'contain',
+      kernel: sharp.kernel.lanczos3,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .sharpen({ sigma: 0.65, m1: 0.7, m2: 1.5 })
+    .extend({
+      top: topPad,
+      bottom: bottomPad,
+      left: leftPad,
+      right: rightPad,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .raw()
+    .toBuffer();
 
-    const gy = ((y + 0.5) / drawH) * srcH - 0.5;
-    const y0 = Math.max(0, Math.min(srcH - 1, Math.floor(gy)));
-    const y1 = Math.max(0, Math.min(srcH - 1, y0 + 1));
-    const wy = Math.max(0, Math.min(1, gy - y0));
-
-    for (let x = 0; x < drawW; x++) {
-      const dx = x + offsetX;
-      if (dx < 0 || dx >= dstSize) continue;
-
-      const gx = ((x + 0.5) / drawW) * srcW - 0.5;
-      const x0 = Math.max(0, Math.min(srcW - 1, Math.floor(gx)));
-      const x1 = Math.max(0, Math.min(srcW - 1, x0 + 1));
-      const wx = Math.max(0, Math.min(1, gx - x0));
-
-      const i00 = (y0 * srcW + x0) * 4;
-      const i10 = (y0 * srcW + x1) * 4;
-      const i01 = (y1 * srcW + x0) * 4;
-      const i11 = (y1 * srcW + x1) * 4;
-
-      const w00 = (1 - wx) * (1 - wy);
-      const w10 = wx * (1 - wy);
-      const w01 = (1 - wx) * wy;
-      const w11 = wx * wy;
-
-      const a00 = src[i00 + 3];
-      const a10 = src[i10 + 3];
-      const a01 = src[i01 + 3];
-      const a11 = src[i11 + 3];
-
-      const alphaSum = w00 * a00 + w10 * a10 + w01 * a01 + w11 * a11;
-      if (alphaSum < 8) continue;
-
-      const aw00 = w00 * a00;
-      const aw10 = w10 * a10;
-      const aw01 = w01 * a01;
-      const aw11 = w11 * a11;
-
-      const r =
-        (src[i00] * aw00 + src[i10] * aw10 + src[i01] * aw01 + src[i11] * aw11) /
-        alphaSum;
-      const g =
-        (src[i00 + 1] * aw00 +
-          src[i10 + 1] * aw10 +
-          src[i01 + 1] * aw01 +
-          src[i11 + 1] * aw11) /
-        alphaSum;
-      const b =
-        (src[i00 + 2] * aw00 +
-          src[i10 + 2] * aw10 +
-          src[i01 + 2] * aw01 +
-          src[i11 + 2] * aw11) /
-        alphaSum;
-
-      const dIdx = (dy * dstSize + dx) * 4;
-      dst[dIdx] = Math.round(r);
-      dst[dIdx + 1] = Math.round(g);
-      dst[dIdx + 2] = Math.round(b);
-      dst[dIdx + 3] = Math.round(alphaSum);
-    }
-  }
-  return dst;
+  return new Uint8Array(outBuf);
 }
 
 /**
- * Tạo viền trắng Die-Cut chuẩn Sticker Zalo/Telegram quanh nhân vật kèm đường contour dịu nhẹ (#cbd5e1),
- * giúp cả các sticker màu trắng (như mèo trắng, thỏ trắng) nổi bật rõ nét trên mọi màu nền khung chat.
+ * Thuật toán 2-Pass Exact 2D Euclidean Distance Transform (Felzenszwalb & Huttenlocher)
+ * độ phức tạp tuyến tính O(W * H), giúp tính khoảng cách chính xác tới từng sub-pixel ở độ phân giải 1024x1024 chỉ trong vài ms.
+ */
+function computeEdt2d(
+  mask: Uint8Array,
+  width: number,
+  height: number
+): Float32Array | null {
+  const INF = 1e9;
+  const maxDim = Math.max(width, height);
+  const f = new Float64Array(maxDim);
+  const v = new Int32Array(maxDim);
+  const z = new Float64Array(maxDim + 1);
+  const grid = new Float32Array(width * height);
+
+  let hasForeground = false;
+  const total = width * height;
+  for (let i = 0; i < total; i++) {
+    if (mask[i]) {
+      grid[i] = 0;
+      hasForeground = true;
+    } else {
+      grid[i] = INF;
+    }
+  }
+  if (!hasForeground) return null;
+
+  // Pass 1: dọc theo từng cột
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) f[y] = grid[y * width + x];
+    let k = 0;
+    v[0] = 0;
+    z[0] = -INF;
+    z[1] = INF;
+    for (let q = 1; q < height; q++) {
+      let s = (f[q] + q * q - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
+      while (s <= z[k]) {
+        k--;
+        s = (f[q] + q * q - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
+      }
+      k++;
+      v[k] = q;
+      z[k] = s;
+      z[k + 1] = INF;
+    }
+    k = 0;
+    for (let q = 0; q < height; q++) {
+      while (z[k + 1] < q) k++;
+      const dy = q - v[k];
+      grid[q * width + x] = dy * dy + f[v[k]];
+    }
+  }
+
+  // Pass 2: ngang theo từng hàng
+  for (let y = 0; y < height; y++) {
+    const rowOffset = y * width;
+    for (let x = 0; x < width; x++) f[x] = grid[rowOffset + x];
+    let k = 0;
+    v[0] = 0;
+    z[0] = -INF;
+    z[1] = INF;
+    for (let q = 1; q < width; q++) {
+      let s = (f[q] + q * q - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
+      while (s <= z[k]) {
+        k--;
+        s = (f[q] + q * q - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
+      }
+      k++;
+      v[k] = q;
+      z[k] = s;
+      z[k + 1] = INF;
+    }
+    k = 0;
+    for (let q = 0; q < width; q++) {
+      while (z[k + 1] < q) k++;
+      const dx = q - v[k];
+      grid[rowOffset + q] = Math.sqrt(dx * dx + f[v[k]]);
+    }
+  }
+
+  return grid;
+}
+
+/**
+ * Tạo viền trắng Die-Cut độ phân giải cao khử răng cưa mượt mà (Sub-pixel Anti-Aliased Outline)
+ * kèm đường contour dịu nhẹ (#cbd5e1) giúp cả các sticker màu trắng nổi bật sắc nét.
  */
 function addDieCutOutlineRgba(
   src: Uint8Array,
   width: number,
   height: number,
-  strokeRadius = 3
+  strokeRadius = 6
 ): Uint8Array {
+  const total = width * height;
+  const mask = new Uint8Array(total);
+  for (let i = 0; i < total; i++) {
+    if (src[i * 4 + 3] >= 115) {
+      mask[i] = 1;
+    }
+  }
+
+  const distGrid = computeEdt2d(mask, width, height);
+  if (!distGrid) return src;
+
   const out = new Uint8Array(src.length);
   out.set(src);
 
-  const outerRadius = strokeRadius + 1;
-  const strokeSq = strokeRadius * strokeRadius;
-  const outerSq = outerRadius * outerRadius;
+  const outerLimit = strokeRadius + 1.35;
 
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const idx = (y * width + x) * 4;
-      const origA = src[idx + 3];
-      if (origA >= 235) continue;
+  for (let i = 0; i < total; i++) {
+    const idx = i * 4;
+    const origA = src[idx + 3];
+    if (origA >= 245) continue;
 
-      let minDistSq = 9999;
-      for (let dy = -outerRadius; dy <= outerRadius; dy++) {
-        const ny = y + dy;
-        if (ny < 0 || ny >= height) continue;
-        for (let dx = -outerRadius; dx <= outerRadius; dx++) {
-          const dSq = dx * dx + dy * dy;
-          if (dSq > outerSq || dSq >= minDistSq) continue;
-          const nx = x + dx;
-          if (nx < 0 || nx >= width) continue;
-          const nA = src[(ny * width + nx) * 4 + 3];
-          if (nA >= 115) {
-            minDistSq = dSq;
-          }
-        }
+    const d = distGrid[i];
+    if (d > outerLimit) continue;
+
+    if (d <= strokeRadius) {
+      // Bên trong vùng viền trắng Die-Cut
+      if (origA > 0) {
+        const factor = origA / 255;
+        out[idx] = Math.round(src[idx] * factor + 255 * (1 - factor));
+        out[idx + 1] = Math.round(src[idx + 1] * factor + 255 * (1 - factor));
+        out[idx + 2] = Math.round(src[idx + 2] * factor + 255 * (1 - factor));
+        out[idx + 3] = 255;
+      } else {
+        out[idx] = 255;
+        out[idx + 1] = 255;
+        out[idx + 2] = 255;
+        out[idx + 3] = 255;
       }
-
-      if (minDistSq <= strokeSq) {
-        if (origA > 0) {
-          const factor = origA / 255;
-          out[idx] = Math.round(src[idx] * factor + 255 * (1 - factor));
-          out[idx + 1] = Math.round(src[idx + 1] * factor + 255 * (1 - factor));
-          out[idx + 2] = Math.round(src[idx + 2] * factor + 255 * (1 - factor));
-          out[idx + 3] = 255;
-        } else {
-          out[idx] = 255;
-          out[idx + 1] = 255;
-          out[idx + 2] = 255;
-          out[idx + 3] = 255;
-        }
-      } else if (minDistSq <= outerSq && origA === 0) {
-        // Đường viền bóng nhẹ bên ngoài viền trắng để tách biệt hoàn hảo với nền sáng
-        out[idx] = 203;
-        out[idx + 1] = 213;
-        out[idx + 2] = 225;
-        out[idx + 3] = 210;
-      }
+    } else if (origA === 0) {
+      // Rìa ngoài chống răng cưa mượt mà (Sub-pixel feathering + subtle #cbd5e1 contour)
+      const edgeProgress = (d - strokeRadius) / (outerLimit - strokeRadius);
+      const contourAlpha = Math.round(215 * Math.max(0, 1 - edgeProgress));
+      out[idx] = 203;
+      out[idx + 1] = 213;
+      out[idx + 2] = 225;
+      out[idx + 3] = contourAlpha;
     }
   }
 
@@ -407,10 +440,9 @@ interface ExtractedFrames {
 
 /**
  * Giải mã mọi định dạng ảnh Sticker từ SigStick (APNG, Multi-frame GIF, Multi-frame WebP, hoặc PNG/WebP tĩnh)
- * thành danh sách các RGBA frames thống nhất.
+ * ở độ phân giải gốc tối đa.
  */
 async function extractStickerFrames(buffer: Buffer): Promise<ExtractedFrames> {
-  // 1. Kiểm tra APNG nếu header là PNG
   if (isPngBuffer(buffer)) {
     try {
       const ab = buffer.buffer.slice(
@@ -437,7 +469,6 @@ async function extractStickerFrames(buffer: Buffer): Promise<ExtractedFrames> {
     }
   }
 
-  // 2. Kiểm tra ảnh động nhiều trang (Animated WebP hoặc Animated GIF có đuôi .png/.webp)
   try {
     const meta = await sharp(buffer, { animated: true }).metadata();
     const pages = meta.pages ?? 1;
@@ -478,7 +509,6 @@ async function extractStickerFrames(buffer: Buffer): Promise<ExtractedFrames> {
     console.warn('[Animated sharp decode fallback]:', e);
   }
 
-  // 3. Mặc định: Ảnh tĩnh 1 frame
   const { data, info } = await sharp(buffer, { animated: false })
     .ensureAlpha()
     .raw()
@@ -493,12 +523,10 @@ async function extractStickerFrames(buffer: Buffer): Promise<ExtractedFrames> {
 }
 
 /**
- * Tạo file Animated GIF chuẩn GIF89a tương thích 100% với Zalo Mobile, Zalo PC & Messenger:
- * - Tự động tách nền & khử răng cưa
- * - Thêm viền trắng Die-Cut nổi bật quanh nhân vật
- * - Hòa trộn nền tiệp màu khung chat Zalo để tuyệt đối không bị nền đen hay nền trắng
- * - Nếu ảnh gốc chỉ có 1 frame tĩnh, tự động tạo chuyển động nhún nhảy (6 frames) để Zalo luôn phát động mượt mà
- * - Chuẩn hóa qua libvips/cgif để bảng màu Global Color Table và LZW Code Size hợp lệ trên mọi thiết bị Android/iOS
+ * Tạo file Animated GIF chuẩn HD sắc nét cho Zalo Mobile, Zalo PC & Messenger:
+ * - Upscale bằng Lanczos-3 + Unsharp Mask
+ * - Viền trắng Die-Cut khử răng cưa bằng 2D Euclidean Distance Transform
+ * - Lượng tử hóa bảng màu 24-bit Truecolor (rgb888) giữ trọn chi tiết màu sắc
  */
 async function buildZaloCompatibleGif(
   buffer: Buffer,
@@ -509,22 +537,21 @@ async function buildZaloCompatibleGif(
 ): Promise<Buffer> {
   const extracted = await extractStickerFrames(buffer);
   const bgRgb = getBgRgb(bgMode);
-  const strokeRadius = Math.max(2, Math.round(targetSize * 0.017));
-  const padRatio = addStroke ? 0.08 : 0.04;
+  const strokeRadius = Math.max(3, Math.round(targetSize * 0.018));
+  const padRatio = addStroke ? 0.075 : 0.035;
 
-  // Chuẩn bị danh sách frame đã tách nền và thu phóng
   const processedFrames: Uint8Array[] = [];
   const frameDelays: number[] = [];
 
   if (extracted.frames.length === 1) {
-    // Sticker gốc là ảnh tĩnh 1 frame -> tạo hiệu ứng nhún nhảy 6 frames để khi gửi GIF qua Zalo luôn chuyển động sống động
     const baseFrame = new Uint8Array(extracted.frames[0]);
     if (removeBg) {
       autoRemoveBackgroundRgba(baseFrame, extracted.width, extracted.height);
     }
-    const bounceShifts = [0, -2, -4, -2, 0, 1];
+    const step = Math.max(2, Math.round(targetSize * 0.01));
+    const bounceShifts = [0, -step, -step * 2, -step, 0, Math.round(step * 0.5)];
     for (const yShift of bounceShifts) {
-      let scaled = resizeRgbaWithPadding(
+      let scaled = await resizeRgbaHighRes(
         baseFrame,
         extracted.width,
         extracted.height,
@@ -544,7 +571,7 @@ async function buildZaloCompatibleGif(
       if (removeBg) {
         autoRemoveBackgroundRgba(rawFrame, extracted.width, extracted.height);
       }
-      let scaled = resizeRgbaWithPadding(
+      let scaled = await resizeRgbaHighRes(
         rawFrame,
         extracted.width,
         extracted.height,
@@ -595,7 +622,8 @@ async function buildZaloCompatibleGif(
       }
     }
 
-    const fmt = useTransparency ? 'rgba4444' : 'rgb565';
+    // Mặc định (undefined) trong gifenc là rgb888 (24-bit Truecolor) giúp giữ trọn chi tiết màu sắc, không bị bệt màu
+    const fmt = useTransparency ? ('rgba4444' as const) : undefined;
     const palette = quantize(composited, 256, {
       format: fmt,
       oneBitAlpha: useTransparency,
@@ -605,7 +633,6 @@ async function buildZaloCompatibleGif(
       ? palette.findIndex((color: number[]) => color[3] === 0)
       : -1;
 
-    // Pad bảng màu đủ 256 màu (8-bit) để khớp tuyệt đối với LZW minimum code size = 8 của gifenc
     while (palette.length < 256) {
       palette.push(
         useTransparency
@@ -627,7 +654,6 @@ async function buildZaloCompatibleGif(
   gif.finish();
   const rawGifBuffer = Buffer.from(gif.bytes());
 
-  // Chuẩn hóa lần cuối qua libvips (cgif) để gộp Global Color Table chuẩn chỉnh cho trình phát Zalo Android/iOS
   try {
     return await sharp(rawGifBuffer, { animated: true, pages: -1 })
       .gif({ loop: 0 })
@@ -644,8 +670,8 @@ export async function GET(request: NextRequest) {
   const bg = (searchParams.get('bg') || 'zalo-mobile') as BgMode;
   const removeBg = searchParams.get('removeBg') !== '0';
   const addStroke = searchParams.get('stroke') !== '0';
-  const sizeParam = parseInt(searchParams.get('size') || '180', 10);
-  const size = Math.min(Math.max(sizeParam || 180, 96), 1024);
+  const sizeParam = parseInt(searchParams.get('size') || '1024', 10);
+  const size = Math.min(Math.max(sizeParam || 1024, 128), 1024);
 
   if (!rawTarget) {
     return NextResponse.json({ error: 'Missing url parameter' }, { status: 400 });
@@ -680,7 +706,7 @@ export async function GET(request: NextRequest) {
     const arrayBuffer = await upstream.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // 1. Trả về nguyên bản có CORS header nếu format=raw
+    // 1. Trả về nguyên bản độ phân giải gốc nếu format=raw
     if (format === 'raw') {
       const contentType = upstream.headers.get('content-type') || 'image/webp';
       return new NextResponse(new Uint8Array(buffer), {
@@ -692,9 +718,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 2. Chuyển đổi sang GIF chuẩn Zalo & Messenger (Hoạt động 100%, có viền Die-Cut, không nền đen/trắng)
+    // 2. Chuyển đổi sang GIF chuẩn HD (512x512 sắc nét, 24-bit palette quantization, hoạt động 100% trên Zalo)
     if (format === 'gif') {
-      const gifSize = Math.min(size, 360);
+      const gifSize = Math.min(size, 512);
       const outGif = await buildZaloCompatibleGif(
         buffer,
         bg,
@@ -705,14 +731,14 @@ export async function GET(request: NextRequest) {
       return new NextResponse(new Uint8Array(outGif), {
         headers: {
           'Content-Type': 'image/gif',
-          'Content-Disposition': 'inline; filename="sticker-zalo.gif"',
+          'Content-Disposition': 'inline; filename="sticker-zalo-hd.gif"',
           'Cache-Control': 'public, max-age=86400',
           'Access-Control-Allow-Origin': '*',
         },
       });
     }
 
-    // 3. Mặc định: Chuyển đổi sang PNG chuẩn kích thước Mobile, tự động tách nền + viền trắng Die-Cut + chống nền đen/trắng
+    // 3. Mặc định: Chuyển đổi sang PNG độ phân giải tối đa (lên tới 1024x1024 Ultra HD, Lanczos-3 + Sharpen + Viền Die-Cut mượt)
     const { data: rawPixels, info } = await sharp(buffer, { animated: false })
       .ensureAlpha()
       .raw()
@@ -722,8 +748,8 @@ export async function GET(request: NextRequest) {
       autoRemoveBackgroundRgba(rawPixels, info.width, info.height);
     }
 
-    const padRatio = addStroke ? 0.08 : 0.04;
-    let scaledRgba = resizeRgbaWithPadding(
+    const padRatio = addStroke ? 0.075 : 0.035;
+    let scaledRgba = await resizeRgbaHighRes(
       new Uint8Array(rawPixels),
       info.width,
       info.height,
@@ -733,7 +759,7 @@ export async function GET(request: NextRequest) {
     );
 
     if (addStroke) {
-      const strokeRadius = Math.max(2, Math.round(size * 0.017));
+      const strokeRadius = Math.max(3, Math.round(size * 0.018));
       scaledRgba = addDieCutOutlineRgba(scaledRgba, size, size, strokeRadius);
     }
 
@@ -754,7 +780,6 @@ export async function GET(request: NextRequest) {
         finalRgba[p + 3] = 255;
       } else {
         if (a === 0) {
-          // Đặt RGB ẩn dưới pixel trong suốt là màu sáng để trình đọc ảnh không bao giờ hiển thị màu đen (0,0,0)
           finalRgba[p] = 226;
           finalRgba[p + 1] = 233;
           finalRgba[p + 2] = 241;
@@ -775,13 +800,13 @@ export async function GET(request: NextRequest) {
         channels: 4,
       },
     })
-      .png({ compressionLevel: 8 })
+      .png({ compressionLevel: 6, adaptiveFiltering: true, quality: 100 })
       .toBuffer();
 
     return new NextResponse(new Uint8Array(outPng), {
       headers: {
         'Content-Type': 'image/png',
-        'Content-Disposition': 'inline; filename="sticker-zalo.png"',
+        'Content-Disposition': 'inline; filename="sticker-zalo-uhd.png"',
         'Cache-Control': 'public, max-age=86400',
         'Access-Control-Allow-Origin': '*',
       },
