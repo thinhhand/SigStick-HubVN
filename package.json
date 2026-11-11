@@ -1,6 +1,7 @@
 {
   "name": "sigstick-vn-clone",
   "version": "1.7.0",
+  "author": "Đặng Ngọc Thịnh",
   "private": true,
   "scripts": {
     "dev": "next dev",

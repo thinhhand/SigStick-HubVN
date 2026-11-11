@@ -7,12 +7,15 @@ export const metadata: Metadata = {
   description:
     "Khám phá hàng triệu Sticker từ SigStick. Tự động chuyển đổi sang PNG & GIF động để Copy dán thẳng hoặc Chia sẻ ngay qua Zalo, Messenger, Discord.",
   manifest: "/manifest.json",
+  authors: [{ name: "Đặng Ngọc Thịnh" }],
+  creator: "Đặng Ngọc Thịnh",
   icons: {
     icon: "/icon.svg",
     apple: "/icon.svg",
   },
   other: {
     "app-version": APP_VERSION,
+    copyright: "© Đặng Ngọc Thịnh",
   },
 };
 

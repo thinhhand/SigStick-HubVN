@@ -1453,7 +1453,7 @@ export default function SigStickHomePage() {
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-slate-200/80 bg-white/60 mt-8 py-6 px-4 sm:px-6 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
             <span className="font-bold text-slate-700 tracking-tight">SigStick Hub VN</span>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-600 border border-indigo-200/70 font-semibold">
@@ -1462,9 +1462,13 @@ export default function SigStickHomePage() {
             <span className="text-slate-300 hidden sm:inline">•</span>
             <span className="text-slate-500">Kho Sticker tối ưu cho Zalo & Messenger</span>
           </div>
-          <p className="text-slate-400 text-[11px]">
-            Tự động tách nền PNG trong suốt & GIF động 1 chạm
-          </p>
+          <div className="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-3 text-slate-400 text-[11px]">
+            <span>Tự động tách nền PNG trong suốt & GIF động 1 chạm</span>
+            <span className="hidden sm:inline text-slate-300">•</span>
+            <span className="font-semibold text-slate-600">
+              Bản quyền thuộc về <strong className="text-indigo-600 font-bold">Đặng Ngọc Thịnh</strong> © {new Date().getFullYear()}
+            </span>
+          </div>
         </div>
       </footer>
 
@@ -1591,7 +1595,7 @@ export default function SigStickHomePage() {
               </div>
 
               <div className="pt-2 flex items-center justify-between text-xs text-slate-400 border-t border-slate-100">
-                <span>SigStick Hub VN</span>
+                <span>Bản quyền © Đặng Ngọc Thịnh</span>
                 <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-indigo-600 border border-slate-200 font-semibold text-[11px]">
                   {APP_VERSION}
                 </span>

@@ -27,3 +27,8 @@ npm run dev
 ```
 
 Sau đó mở trình duyệt tại địa chỉ: `http://localhost:3000`
+
+## 👤 Tác giả & Bản quyền
+
+- **Tác giả**: **Đặng Ngọc Thịnh**
+- **Bản quyền**: © Đặng Ngọc Thịnh. Mọi quyền được bảo lưu.
