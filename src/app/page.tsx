@@ -46,7 +46,7 @@ import {
   setDefaultCopyBgMode,
   getDefaultStickerSize,
   setDefaultStickerSize,
-  shareStickerToZalo,
+  shareSticker,
 } from "@/lib/stickerActions";
 import PackDetailModal from "@/components/PackDetailModal";
 import StickerStudioModal from "@/components/StickerStudioModal";
@@ -162,21 +162,20 @@ export default function SigStickHomePage() {
   const handleToggleCopyBgMode = () => {
     const order: BgMode[] = [
       "transparent",
-      "zalo-mobile",
-      "zalo-light",
-      "zalo-dark",
+      "white",
+      "dark",
     ];
     const nextIdx = (order.indexOf(copyBgMode) + 1) % order.length;
     const next = order[nextIdx];
     setCopyBgMode(next);
     setDefaultCopyBgMode(next);
     const labelMap: Record<BgMode, string> = {
-      transparent: "Nền trong suốt 100% (Chuẩn GIF Zalo & Messenger)",
-      "zalo-mobile": "Nền Zalo Điện thoại (#e2e9f1)",
-      "zalo-light": "Nền Zalo PC Sáng (#ebecf0)",
-      "zalo-dark": "Nền Zalo Tối (#22262b)",
+      transparent: "Nền trong suốt 100% (Chuẩn Messenger & Zalo)",
       white: "Nền trắng",
       dark: "Nền tối",
+      "zalo-mobile": "Nền Zalo ĐT",
+      "zalo-light": "Nền Zalo PC",
+      "zalo-dark": "Nền Zalo Tối",
     };
     showToast(`Đã đổi chế độ: ${labelMap[next]}`, "info");
   };
@@ -475,7 +474,7 @@ export default function SigStickHomePage() {
       }, 2000);
     } catch {
       try {
-        await shareStickerToZalo(
+        await shareSticker(
           sticker.url,
           {
             bg: copyBgMode,
@@ -537,7 +536,7 @@ export default function SigStickHomePage() {
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 hidden sm:block">
-                Chuẩn GIF & PNG Zalo • Độ phân giải Max Ultra HD • Có viền • Không nền đen/trắng
+                Sticker cho Messenger & Zalo • Tự động chuyển động & Nền trong suốt 100%
               </p>
             </div>
           </div>
@@ -1205,7 +1204,7 @@ export default function SigStickHomePage() {
                       <div
                         onClick={async () => {
                           try {
-                            const res = await shareStickerToZalo(
+                            const res = await shareSticker(
                               entry.sticker.url,
                               {
                                 bg: copyBgMode,
@@ -1217,8 +1216,8 @@ export default function SigStickHomePage() {
                             );
                             showToast(
                               res === "shared"
-                                ? `Đã mở Chia sẻ Zalo (${animated ? "GIF" : "PNG"} • ${stickerSize}px)!`
-                                : `Đã Copy Sticker chuẩn Zalo (${stickerSize}px)!`,
+                                ? `Đã mở bảng chia sẻ Messenger & Zalo (${animated ? "GIF" : "PNG"} • ${stickerSize}px)!`
+                                : `Đã Copy Sticker nền trong suốt (${stickerSize}px)!`,
                               "success"
                             );
                           } catch {
@@ -1234,6 +1233,8 @@ export default function SigStickHomePage() {
                           src={thumbUrl}
                           alt={entry.pack.title}
                           className="w-full h-full object-contain group-hover:scale-105 transition drop-shadow-[0_0_2px_#fff]"
+                          loading="lazy"
+                          decoding="async"
                         />
                       </div>
 
@@ -1241,7 +1242,7 @@ export default function SigStickHomePage() {
                         <button
                           onClick={async () => {
                             try {
-                              const res = await shareStickerToZalo(
+                              const res = await shareSticker(
                                 entry.sticker.url,
                                 {
                                   bg: copyBgMode,
@@ -1253,8 +1254,8 @@ export default function SigStickHomePage() {
                               );
                               showToast(
                                 res === "shared"
-                                  ? `Đã mở Chia sẻ Zalo (${animated ? "GIF" : "PNG"} • ${stickerSize}px)!`
-                                  : `Đã Copy Sticker chuẩn Zalo (${stickerSize}px)!`,
+                                  ? `Đã mở Chia sẻ (${animated ? "GIF" : "PNG"} • ${stickerSize}px)!`
+                                  : `Đã Copy Sticker (${stickerSize}px)!`,
                                 "success"
                               );
                             } catch {
@@ -1585,12 +1586,10 @@ export default function SigStickHomePage() {
 
               <div className="rounded-2xl bg-indigo-50/70 border border-indigo-100 p-3.5 text-xs text-indigo-900 space-y-1">
                 <p className="font-bold text-indigo-700">
-                  Tự động tách nền thông minh
+                  Tự động tách nền & Chuyển động đa nền tảng
                 </p>
                 <p className="leading-relaxed text-indigo-800/90">
-                  Hệ thống tự động loại bỏ nền trắng/nền đặc của sticker và khử
-                  viền răng cưa để khi gửi qua Zalo chỉ hiển thị đúng hình
-                  nhân vật trong suốt.
+                  Hệ thống tự động loại bỏ nền trắng/nền đặc của sticker và tạo ảnh GIF động chuẩn để khi gửi qua cả Messenger và Zalo đều tự động chuyển động với nền trong suốt hoàn hảo.
                 </p>
               </div>
 

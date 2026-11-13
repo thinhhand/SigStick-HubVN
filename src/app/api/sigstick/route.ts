@@ -10,7 +10,17 @@ const DEFAULT_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) SigStickWebClient/1.0',
 };
 
-async function fetchJson(url: string) {
+// In-memory cache for SigStick API responses
+const apiCache = new Map<string, { data: any; expiresAt: number }>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+async function fetchJsonWithCache(url: string) {
+  const now = Date.now();
+  const cached = apiCache.get(url);
+  if (cached && cached.expiresAt > now) {
+    return cached.data;
+  }
+
   const res = await fetch(url, {
     headers: DEFAULT_HEADERS,
     next: { revalidate: 300 },
@@ -18,7 +28,23 @@ async function fetchJson(url: string) {
   if (!res.ok) {
     throw new Error(`Upstream HTTP ${res.status} for ${url}`);
   }
-  return res.json();
+  const data = await res.json();
+  
+  // Prune cache if oversized
+  if (apiCache.size > 200) {
+    const oldestKey = apiCache.keys().next().value;
+    if (oldestKey) apiCache.delete(oldestKey);
+  }
+  apiCache.set(url, { data, expiresAt: now + CACHE_TTL_MS });
+  return data;
+}
+
+function jsonResponse(data: any, maxAge = 300) {
+  return NextResponse.json(data, {
+    headers: {
+      'Cache-Control': `public, max-age=${maxAge}, stale-while-revalidate=${maxAge * 2}`,
+    },
+  });
 }
 
 export async function GET(request: NextRequest) {
@@ -33,16 +59,16 @@ export async function GET(request: NextRequest) {
   try {
     if (action === 'pack') {
       if (!packId) {
-        return NextResponse.json({ error: 'Missing pack id' }, { status: 400 });
+        return jsonResponse({ error: 'Missing pack id' }, 60);
       }
       const cleanId = extractPackIdFromInput(packId) || packId;
-      const data = await fetchJson(
+      const data = await fetchJsonWithCache(
         `${SIGSTICK_API_HOST}/v1/stickerPack/${encodeURIComponent(cleanId)}?fresh=0`
       );
-      return NextResponse.json({
+      return jsonResponse({
         status: 'ok',
         pack: data?.data || null,
-      });
+      }, 600);
     }
 
     if (action === 'suggestions') {
@@ -50,44 +76,44 @@ export async function GET(request: NextRequest) {
       const url = q
         ? `${SIGSTICK_API_HOST}/v1/search/suggestions?keyword=${encodeURIComponent(q)}`
         : `${SIGSTICK_API_HOST}/v1/search/suggestions`;
-      const data = await fetchJson(url);
-      return NextResponse.json({
+      const data = await fetchJsonWithCache(url);
+      return jsonResponse({
         status: 'ok',
         suggestions: Array.isArray(data?.data) ? data.data : [],
-      });
+      }, 300);
     }
 
     if (action === 'featured') {
-      const data = await fetchJson(`${SIGSTICK_API_HOST}/v1/featured`);
-      return NextResponse.json({
+      const data = await fetchJsonWithCache(`${SIGSTICK_API_HOST}/v1/featured`);
+      return jsonResponse({
         status: 'ok',
         items: data?.data?.items || [],
-      });
+      }, 600);
     }
 
     if (action === 'search') {
       const q = keyword.trim();
       if (!q) {
-        return NextResponse.json({ status: 'ok', packs: [] });
+        return jsonResponse({ status: 'ok', packs: [] }, 60);
       }
 
       // Kiểm tra xem người dùng có dán link SigStick hoặc Pack ID trực tiếp không
       const extractedId = extractPackIdFromInput(q);
       const promises: Promise<any>[] = [
-        fetchJson(
+        fetchJsonWithCache(
           `${SIGSTICK_API_HOST}/v1/stickerPack?keyword=${encodeURIComponent(q)}`
         ).catch(() => null),
-        fetchJson(
+        fetchJsonWithCache(
           `${SIGSTICK_API_HOST}/v1/search/tagged?keyword=${encodeURIComponent(q)}`
         ).catch(() => null),
-        fetchJson(
+        fetchJsonWithCache(
           `${SIGSTICK_API_HOST}/v1/search/related?keyword=${encodeURIComponent(q)}`
         ).catch(() => null),
       ];
 
       if (extractedId) {
         promises.unshift(
-          fetchJson(
+          fetchJsonWithCache(
             `${SIGSTICK_API_HOST}/v1/stickerPack/${encodeURIComponent(extractedId)}?fresh=0`
           ).catch(() => null)
         );
@@ -122,10 +148,10 @@ export async function GET(request: NextRequest) {
         relatedRes.data.stickerPacks.forEach(addPack);
       }
 
-      return NextResponse.json({
+      return jsonResponse({
         status: 'ok',
         packs: merged,
-      });
+      }, 300);
     }
 
     // Mặc định: discover (trending | top | new)
@@ -138,18 +164,18 @@ export async function GET(request: NextRequest) {
     if (startAfter && startAfter !== '0') params.set('startAfter', startAfter);
 
     const url = `${SIGSTICK_API_HOST}${endpoint}?${params.toString()}`;
-    const data = await fetchJson(url);
+    const data = await fetchJsonWithCache(url);
 
-    return NextResponse.json({
+    return jsonResponse({
       status: 'ok',
       packs: data?.data?.packs || [],
       nextStartAfter: data?.data?.nextStartAfter ?? 0,
-    });
+    }, 300);
   } catch (error: any) {
     console.error('[API /api/sigstick error]:', error);
-    return NextResponse.json(
+    return jsonResponse(
       { status: 'error', message: error?.message || 'Internal Server Error', packs: [] },
-      { status: 500 }
+      60
     );
   }
 }

@@ -682,6 +682,12 @@ async function buildZaloCompatibleGif(
   }
 }
 
+// In-memory LRU cache for converted results and upstream buffers
+const convertedCache = new Map<string, { buffer: Buffer; contentType: string; filename: string; expiresAt: number }>();
+const upstreamBufferCache = new Map<string, { buffer: Buffer; expiresAt: number }>();
+const CONVERT_CACHE_TTL = 3600 * 1000; // 1 hour
+const UPSTREAM_CACHE_TTL = 1800 * 1000; // 30 minutes
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const rawTarget = searchParams.get('url');
@@ -708,30 +714,58 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Disallowed host' }, { status: 403 });
   }
 
-  try {
-    const upstream = await fetch(normalizedUrl, {
+  const cacheKey = `${normalizedUrl}_${format}_${bg}_${removeBg}_${size}_${addStroke}`;
+  const now = Date.now();
+  const cachedResult = convertedCache.get(cacheKey);
+  if (cachedResult && cachedResult.expiresAt > now) {
+    return new NextResponse(new Uint8Array(cachedResult.buffer), {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) SigStickWebClient/1.0',
+        'Content-Type': cachedResult.contentType,
+        'Content-Disposition': `inline; filename="${cachedResult.filename}"`,
+        'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400, immutable',
+        'Access-Control-Allow-Origin': '*',
+        'X-Cache': 'HIT',
       },
     });
+  }
 
-    if (!upstream.ok) {
-      return NextResponse.json(
-        { error: `Failed to fetch sticker: ${upstream.status}` },
-        { status: upstream.status }
-      );
+  try {
+    let buffer: Buffer;
+    let rawContentType = 'image/webp';
+    const cachedUpstream = upstreamBufferCache.get(normalizedUrl);
+    if (cachedUpstream && cachedUpstream.expiresAt > now) {
+      buffer = cachedUpstream.buffer;
+      rawContentType = (cachedUpstream as any).contentType || 'image/webp';
+    } else {
+      const upstream = await fetch(normalizedUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) SigStickWebClient/1.0',
+        },
+      });
+
+      if (!upstream.ok) {
+        return NextResponse.json(
+          { error: `Failed to fetch sticker: ${upstream.status}` },
+          { status: upstream.status }
+        );
+      }
+
+      rawContentType = upstream.headers.get('content-type') || 'image/webp';
+      const arrayBuffer = await upstream.arrayBuffer();
+      buffer = Buffer.from(arrayBuffer);
+      if (upstreamBufferCache.size > 150) {
+        const oldest = upstreamBufferCache.keys().next().value;
+        if (oldest) upstreamBufferCache.delete(oldest);
+      }
+      upstreamBufferCache.set(normalizedUrl, { buffer, contentType: rawContentType, expiresAt: now + UPSTREAM_CACHE_TTL } as any);
     }
-
-    const arrayBuffer = await upstream.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
 
     // 1. Trả về nguyên bản độ phân giải gốc nếu format=raw
     if (format === 'raw') {
-      const contentType = upstream.headers.get('content-type') || 'image/webp';
       return new NextResponse(new Uint8Array(buffer), {
         headers: {
-          'Content-Type': contentType,
-          'Cache-Control': 'public, max-age=86400',
+          'Content-Type': rawContentType,
+          'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400, immutable',
           'Access-Control-Allow-Origin': '*',
         },
       });
@@ -747,11 +781,23 @@ export async function GET(request: NextRequest) {
         gifSize,
         addStroke
       );
+
+      if (convertedCache.size > 200) {
+        const oldest = convertedCache.keys().next().value;
+        if (oldest) convertedCache.delete(oldest);
+      }
+      convertedCache.set(cacheKey, {
+        buffer: outGif,
+        contentType: 'image/gif',
+        filename: 'sticker-transparent.gif',
+        expiresAt: now + CONVERT_CACHE_TTL,
+      });
+
       return new NextResponse(new Uint8Array(outGif), {
         headers: {
           'Content-Type': 'image/gif',
           'Content-Disposition': 'inline; filename="sticker-transparent.gif"',
-          'Cache-Control': 'public, max-age=86400',
+          'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400, immutable',
           'Access-Control-Allow-Origin': '*',
         },
       });
@@ -827,11 +873,22 @@ export async function GET(request: NextRequest) {
       .png({ compressionLevel: 6, adaptiveFiltering: true, quality: 100 })
       .toBuffer();
 
+    if (convertedCache.size > 200) {
+      const oldest = convertedCache.keys().next().value;
+      if (oldest) convertedCache.delete(oldest);
+    }
+    convertedCache.set(cacheKey, {
+      buffer: outPng,
+      contentType: 'image/png',
+      filename: 'sticker-transparent.png',
+      expiresAt: now + CONVERT_CACHE_TTL,
+    });
+
     return new NextResponse(new Uint8Array(outPng), {
       headers: {
         'Content-Type': 'image/png',
         'Content-Disposition': 'inline; filename="sticker-transparent.png"',
-        'Cache-Control': 'public, max-age=86400',
+        'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400, immutable',
         'Access-Control-Allow-Origin': '*',
       },
     });

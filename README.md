@@ -11,13 +11,13 @@
 2. **Tự động chuyển đổi định dạng Sticker cho Zalo & Messenger**:
    - SigStick lưu trữ sticker dưới dạng `.webp` và `APNG` (Animated PNG) vốn dễ bị lỗi đứng hình hoặc thành file đính kèm khi dán vào Zalo / Messenger.
    - Endpoint `/api/sticker/convert` tự động giải mã từng frame của **Animated WebP** (qua `sharp`) và **Multi-frame APNG** (qua `upng-js` + `gifenc`) sang **PNG trong suốt** và **Ảnh động `.gif` lặp vô hạn**.
-3. **3 Chế độ gửi Sticker 1 chạm**:
-   - **Copy PNG (`Ctrl + V`)**: Chạm vào bất kỳ sticker nào để copy thẳng định dạng `image/png` vào Clipboard và dán ngay vào khung chat Zalo PC / Messenger Web.
-   - **Chia sẻ sang App (Web Share API Level 2)**: Mở Native Share Sheet trên iOS / Android để bắn thẳng file `.gif` hoặc `.png` vào ứng dụng Zalo hoặc Messenger.
-   - **Phòng Studio & Chế chữ Meme**: Xem trước sticker trực tiếp trên giao diện mô phỏng khung chat Zalo / Messenger Dark Mode, bật **viền trắng Die-cut**, đổi màu nền hoặc gắn **Caption Meme tiếng Việt** trước khi Copy/Chia sẻ.
-4. **Cá nhân hóa & Tải trọn bộ ZIP**:
-   - Lưu **Sticker Yêu thích**, **Bộ Sticker đã lưu** và **Lịch sử sử dụng gần đây** ngay trên trình duyệt (`localStorage`).
-   - Hỗ trợ tải xuống toàn bộ gói sticker dưới dạng file nén `.zip` (chọn định dạng `.png` hoặc `.gif`).
+3. **Tối ưu tốc độ & Bộ nhớ đệm (In-memory LRU Cache)**:
+   - Hệ thống đệm bộ nhớ trực tiếp trên Server giúp các sticker đã chuyển đổi được phản hồi tức thì (< 5ms).
+   - Thiết lập header `Cache-Control` dài hạn (`immutable`, `stale-while-revalidate`) giúp trình duyệt tải siêu tốc.
+4. **Chia sẻ 1 chạm đa nền tảng (Messenger & Zalo)**:
+   - **Chia sẻ sang App (Web Share API Level 2)**: 1 chạm mở bảng chia sẻ để gửi thẳng file `.gif` động hoặc `.png` trong suốt vào **Messenger**, **Zalo**, **Telegram** trên iOS & Android.
+   - **Copy PNG (`Ctrl + V`)**: Copy sticker tách nền trong suốt vào Clipboard để dán tức thì trên Messenger Web và Zalo PC.
+   - **Xem & Tải trọn bộ**: Xem trước sticker động, tùy chỉnh độ phân giải Max Ultra HD (1024px) / Chuẩn (512px) và tải trọn gói ZIP.
 
 ## 🚀 Cách chạy ứng dụng
 

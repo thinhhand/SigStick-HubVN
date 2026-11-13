@@ -350,10 +350,11 @@ export async function shareStickerViaNativeSheet(
 }
 
 /**
- * Chia sẻ sang Zalo & Messenger dưới dạng GIF ĐỘNG NỀN TRONG SUỐT (giống hệt chuẩn Messenger_creation_...gif):
- * Khi gửi qua cả Zalo và Messenger sẽ tự động chuyển động và có nền trong suốt!
+ * Chia sẻ Sticker sang Messenger & Zalo dưới dạng GIF ĐỘNG NỀN TRONG SUỐT hoặc PNG:
+ * - Trên thiết bị di động: Mở Native Share Sheet để người dùng gửi thẳng sang Messenger hoặc Zalo
+ * - Trên máy tính: Tự động Copy vào Clipboard để dán ngay (Ctrl+V) hoặc tải file
  */
-export async function shareStickerToZalo(
+export async function shareSticker(
   stickerUrl: string,
   options: StickerCustomizeOptions & { preferGif?: boolean } = {},
   title = 'Sticker'
@@ -362,7 +363,6 @@ export async function shareStickerToZalo(
   const targetSize = options.size ?? getDefaultStickerSize();
   const targetStroke = options.addWhiteStroke ?? false;
   const hasCaption = Boolean(options.caption && options.caption.trim().length > 0);
-  // Luôn ưu tiên xuất định dạng .GIF nền trong suốt để cả Zalo và Messenger đều tự chuyển động và nền trong!
   const format: 'gif' | 'png' =
     options.preferGif === false || hasCaption ? 'png' : 'gif';
 
@@ -382,6 +382,7 @@ export async function shareStickerToZalo(
     return 'shared';
   }
 
+  // Nếu trên Desktop / trình duyệt không hỗ trợ Web Share API files:
   if (format === 'gif') {
     await downloadSticker(
       stickerUrl,
@@ -392,7 +393,7 @@ export async function shareStickerToZalo(
         size: targetSize,
         addWhiteStroke: targetStroke,
       },
-      `Messenger_creation_${Date.now()}`
+      `SigStick_sticker_${Date.now()}`
     );
     return 'downloaded';
   }
@@ -420,6 +421,9 @@ export async function shareStickerToZalo(
     return 'downloaded';
   }
 }
+
+// Giữ lại alias để tương thích ngược
+export const shareStickerToZalo = shareSticker;
 
 /**
  * Tải xuống 1 sticker đã chuyển đổi định dạng (GIF / PNG / WebP)
