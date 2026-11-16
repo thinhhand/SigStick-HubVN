@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useSession, signIn, signOut } from "next-auth/react";
 import {
   Search,
   Flame,
@@ -25,7 +26,33 @@ import {
   Globe,
   Maximize2,
   Share2,
+  LogOut,
+  User,
+  Cloud,
 } from "lucide-react";
+
+function GoogleIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none">
+      <path
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+        fill="#4285F4"
+      />
+      <path
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+        fill="#34A853"
+      />
+      <path
+        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+        fill="#EA4335"
+      />
+    </svg>
+  );
+}
 import {
   StickerPack,
   StickerItem,
@@ -113,6 +140,25 @@ export default function SigStickHomePage() {
   } | null>(null);
   const [showGuideModal, setShowGuideModal] = useState(false);
 
+  // NextAuth session for Google Login
+  const { data: session, status: authStatus } = useSession();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isCloudSyncing, setIsCloudSyncing] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement | null>(null);
+
+  // Close user menu on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    }
+    if (showUserMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showUserMenu]);
+
   // Quick copy state on card preview stickers
   const [copyingPreviewKey, setCopyingPreviewKey] = useState<string | null>(
     null
@@ -140,7 +186,7 @@ export default function SigStickHomePage() {
     []
   );
 
-  // Load persisted data from localStorage
+  // Load persisted data from localStorage on first render
   useEffect(() => {
     try {
       const favRaw = localStorage.getItem("sigstick_vn_fav_stickers");
@@ -158,6 +204,88 @@ export default function SigStickHomePage() {
       console.error("Failed to read localStorage", e);
     }
   }, []);
+
+  // Sync favorites with Google Account when user is logged in
+  useEffect(() => {
+    if (!session?.user) return;
+    let cancelled = false;
+    setIsCloudSyncing(true);
+
+    fetch("/api/user/favorites")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data || data.status !== "ok") return;
+        const cloudFavs: SavedStickerEntry[] = Array.isArray(data.favorites) ? data.favorites : [];
+        const cloudPacks: StickerPack[] = Array.isArray(data.savedPacks) ? data.savedPacks : [];
+
+        // Merge cloud items with local items
+        setFavoriteStickers((prevLocal) => {
+          const map = new Map<string, SavedStickerEntry>();
+          for (const item of cloudFavs) {
+            map.set(item.key, item);
+          }
+          let hasNewLocal = false;
+          for (const item of prevLocal) {
+            if (!map.has(item.key)) {
+              map.set(item.key, item);
+              hasNewLocal = true;
+            }
+          }
+          const merged = Array.from(map.values());
+          try {
+            localStorage.setItem("sigstick_vn_fav_stickers", JSON.stringify(merged));
+          } catch {}
+
+          if (hasNewLocal) {
+            fetch("/api/user/favorites", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ favorites: merged }),
+            }).catch(() => {});
+          }
+          return merged;
+        });
+
+        setSavedPacks((prevLocal) => {
+          const map = new Map<string, StickerPack>();
+          for (const p of cloudPacks) {
+            map.set(p.id, p);
+          }
+          let hasNewLocal = false;
+          for (const p of prevLocal) {
+            if (!map.has(p.id)) {
+              map.set(p.id, p);
+              hasNewLocal = true;
+            }
+          }
+          const merged = Array.from(map.values());
+          try {
+            localStorage.setItem("sigstick_vn_saved_packs", JSON.stringify(merged));
+          } catch {}
+
+          if (hasNewLocal) {
+            fetch("/api/user/favorites", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ savedPacks: merged }),
+            }).catch(() => {});
+          }
+          return merged;
+        });
+
+        showToast("Đã đồng bộ Sticker yêu thích từ tài khoản Google!", "info");
+      })
+      .catch((err) => {
+        console.error("Cloud sync error:", err);
+      })
+      .finally(() => {
+        if (!cancelled) setIsCloudSyncing(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user, showToast]);
 
   const handleToggleCopyBgMode = () => {
     const order: BgMode[] = [
@@ -193,12 +321,20 @@ export default function SigStickHomePage() {
     );
   };
 
-  // Save helpers
+  // Save helpers (saves locally + syncs to server if logged in)
   const persistFavorites = (next: SavedStickerEntry[]) => {
     setFavoriteStickers(next);
     try {
       localStorage.setItem("sigstick_vn_fav_stickers", JSON.stringify(next));
     } catch {}
+
+    if (session?.user) {
+      fetch("/api/user/favorites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ favorites: next }),
+      }).catch((e) => console.error("Cloud sync favorites failed:", e));
+    }
   };
 
   const persistSavedPacks = (next: StickerPack[]) => {
@@ -206,6 +342,14 @@ export default function SigStickHomePage() {
     try {
       localStorage.setItem("sigstick_vn_saved_packs", JSON.stringify(next));
     } catch {}
+
+    if (session?.user) {
+      fetch("/api/user/favorites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ savedPacks: next }),
+      }).catch((e) => console.error("Cloud sync saved packs failed:", e));
+    }
   };
 
   const recordRecentSticker = useCallback(
@@ -661,6 +805,101 @@ export default function SigStickHomePage() {
               <HelpCircle className="w-4 h-4 text-indigo-500" />
               <span className="hidden sm:inline">Hướng dẫn</span>
             </button>
+
+            {/* Google Authentication Button / User Profile */}
+            {authStatus === "loading" ? (
+              <div className="w-8 h-8 rounded-xl bg-slate-100 animate-pulse" />
+            ) : session?.user ? (
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  aria-label="Tài khoản Google"
+                  className="min-h-[38px] flex items-center gap-1.5 p-1 pr-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/90 text-xs font-semibold transition cursor-pointer shadow-2xs active:scale-95"
+                >
+                  {session.user.image ? (
+                    <img
+                      src={session.user.image}
+                      alt={session.user.name || "User"}
+                      className="w-6 h-6 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
+                      {session.user.name?.[0] || <User className="w-3.5 h-3.5" />}
+                    </div>
+                  )}
+                  <span className="max-w-[70px] sm:max-w-[110px] truncate text-slate-800 text-[11px] sm:text-xs">
+                    {session.user.name?.split(" ").slice(-1)[0] || "Tài khoản"}
+                  </span>
+                  {isCloudSyncing && (
+                    <Loader2 className="w-3 h-3 animate-spin text-teal-600 shrink-0" />
+                  )}
+                </button>
+
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-white border border-slate-200/90 shadow-xl p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="flex items-center gap-2.5 pb-2.5 border-b border-slate-100">
+                      {session.user.image ? (
+                        <img
+                          src={session.user.image}
+                          alt=""
+                          className="w-10 h-10 rounded-xl object-cover shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm shrink-0">
+                          {session.user.name?.[0] || "G"}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-slate-800 truncate">
+                          {session.user.name}
+                        </p>
+                        <p className="text-[10px] text-slate-400 truncate">
+                          {session.user.email}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="py-2.5 text-xs text-slate-600 space-y-1.5 border-b border-slate-100">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-slate-500">Sticker yêu thích:</span>
+                        <strong className="text-indigo-600 font-bold">{favoriteStickers.length}</strong>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-slate-500">Bộ sticker đã lưu:</span>
+                        <strong className="text-indigo-600 font-bold">{savedPacks.length}</strong>
+                      </div>
+                      <div className="flex items-center gap-1.5 pt-1 text-[10px] text-teal-600 font-medium">
+                        <Cloud className="w-3.5 h-3.5 shrink-0" />
+                        <span>Đã đồng bộ Google Account</span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        signOut();
+                      }}
+                      className="w-full mt-2 py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Đăng xuất</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => signIn("google")}
+                className="min-h-[38px] flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-700 text-xs font-semibold shadow-2xs transition cursor-pointer active:scale-95"
+                title="Đăng nhập Google để lưu Sticker yêu thích riêng"
+              >
+                <GoogleIcon className="w-4 h-4 shrink-0" />
+                <span className="hidden sm:inline">Đăng nhập</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -1154,7 +1393,7 @@ export default function SigStickHomePage() {
                   )}
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Chạm vào sticker để Copy PNG ngay hoặc mở Studio chế chữ.
+                  Chạm vào sticker để Copy PNG ngay hoặc mở Studio xem & chia sẻ.
                 </p>
               </div>
 
@@ -1172,6 +1411,50 @@ export default function SigStickHomePage() {
                 </button>
               )}
             </div>
+
+            {/* Google Sync Status / Sign-in Banner for Favorites */}
+            {mainTab === "favorites" && (
+              !session?.user ? (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-indigo-50/80 via-sky-50/80 to-teal-50/80 border border-indigo-100 shadow-2xs">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-2xs border border-indigo-100 shrink-0">
+                      <GoogleIcon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs sm:text-sm font-bold text-slate-800">
+                        Đăng nhập Google để lưu Sticker yêu thích riêng
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        Đồng bộ kho sticker yêu thích của bạn lên đám mây, không lo mất khi đổi máy hoặc xóa dữ liệu trình duyệt.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => signIn("google")}
+                    className="min-h-[38px] px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 flex items-center gap-2 shadow-2xs transition active:scale-95 shrink-0 cursor-pointer"
+                  >
+                    <GoogleIcon className="w-4 h-4" />
+                    <span>Đăng nhập Google</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-teal-50/90 border border-teal-200 text-[11px] text-teal-800">
+                  <div className="flex items-center gap-2 font-medium">
+                    <Cloud className="w-4 h-4 text-teal-600 shrink-0" />
+                    <span>
+                      Đang đồng bộ đám mây cho tài khoản: <strong>{session.user.email}</strong>
+                    </span>
+                  </div>
+                  {isCloudSyncing && (
+                    <span className="text-[10px] text-teal-600 flex items-center gap-1 shrink-0">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Đang đồng bộ...
+                    </span>
+                  )}
+                </div>
+              )
+            )}
 
             {(mainTab === "favorites" ? favoriteStickers : recentStickers)
               .length === 0 ? (

@@ -18,11 +18,21 @@
    - **Chia sẻ sang App (Web Share API Level 2)**: 1 chạm mở bảng chia sẻ để gửi thẳng file `.gif` động hoặc `.png` trong suốt vào **Messenger**, **Zalo**, **Telegram** trên iOS & Android.
    - **Copy PNG (`Ctrl + V`)**: Copy sticker tách nền trong suốt vào Clipboard để dán tức thì trên Messenger Web và Zalo PC.
    - **Xem & Tải trọn bộ**: Xem trước sticker động, tùy chỉnh độ phân giải Max Ultra HD (1024px) / Chuẩn (512px) và tải trọn gói ZIP.
+5. **Đăng nhập Google & Lưu Sticker Yêu thích riêng**:
+   - Tích hợp **Google OAuth (NextAuth.js)**: Đăng nhập an toàn, tiện lợi chỉ với 1 click.
+   - **Đồng bộ đám mây (Cloud Sync)**: Lưu danh sách Sticker yêu thích và Bộ sưu tập đã lưu riêng cho từng tài khoản Google, tự động đồng bộ khi chuyển đổi giữa điện thoại và máy tính.
+   - Hỗ trợ hoạt động linh hoạt: Không bắt buộc đăng nhập (vẫn lưu tạm qua LocalStorage như trước), tự động gộp (merge) danh sách khi đăng nhập Google.
 
 ## 🚀 Cách chạy ứng dụng
 
+1. Tạo file `.env.local` từ mẫu `.env.example`:
 ```bash
-cd C:\Users\srdbp04\.gemini\antigravity\scratch\sigstick-clone
+cp .env.example .env.local
+```
+Điền `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` (từ Google Cloud Console) và `AUTH_SECRET`.
+
+2. Khởi chạy ứng dụng:
+```bash
 npm run dev
 ```
 
