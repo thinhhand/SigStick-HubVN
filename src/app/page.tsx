@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useSession, signIn, signOut } from "next-auth/react";
 import {
   Search,
   Flame,
@@ -27,32 +26,10 @@ import {
   Maximize2,
   Share2,
   LogOut,
-  User,
   Cloud,
+  KeyRound,
+  Upload,
 } from "lucide-react";
-
-function GoogleIcon({ className = "w-4 h-4" }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none">
-      <path
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-        fill="#4285F4"
-      />
-      <path
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-        fill="#34A853"
-      />
-      <path
-        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-        fill="#FBBC05"
-      />
-      <path
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-        fill="#EA4335"
-      />
-    </svg>
-  );
-}
 import {
   StickerPack,
   StickerItem,
@@ -140,24 +117,13 @@ export default function SigStickHomePage() {
   } | null>(null);
   const [showGuideModal, setShowGuideModal] = useState(false);
 
-  // NextAuth session for Google Login
-  const { data: session, status: authStatus } = useSession();
-  const [showUserMenu, setShowUserMenu] = useState(false);
+  // Simple Sync Code state (zero-config cross-device sync)
+  const [syncCode, setSyncCode] = useState<string>("");
+  const [syncPin, setSyncPin] = useState<string>("");
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [syncCodeInput, setSyncCodeInput] = useState("");
+  const [syncPinInput, setSyncPinInput] = useState("");
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement | null>(null);
-
-  // Close user menu on outside click
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
-        setShowUserMenu(false);
-      }
-    }
-    if (showUserMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [showUserMenu]);
 
   // Quick copy state on card preview stickers
   const [copyingPreviewKey, setCopyingPreviewKey] = useState<string | null>(
@@ -198,6 +164,13 @@ export default function SigStickHomePage() {
       const recentRaw = localStorage.getItem("sigstick_vn_recent_stickers");
       if (recentRaw) setRecentStickers(JSON.parse(recentRaw));
 
+      const savedCode = localStorage.getItem("sigstick_vn_sync_code") || "";
+      const savedPin = localStorage.getItem("sigstick_vn_sync_pin") || "";
+      if (savedCode) {
+        setSyncCode(savedCode);
+        setSyncPin(savedPin);
+      }
+
       setCopyBgMode(getDefaultCopyBgMode());
       setStickerSize(getDefaultStickerSize());
     } catch (e) {
@@ -205,87 +178,175 @@ export default function SigStickHomePage() {
     }
   }, []);
 
-  // Sync favorites with Google Account when user is logged in
-  useEffect(() => {
-    if (!session?.user) return;
-    let cancelled = false;
-    setIsCloudSyncing(true);
+  // Auto-sync from server when syncCode is configured
+  const syncWithServer = useCallback(
+    async (codeToUse: string, pinToUse: string, silent = false) => {
+      if (!codeToUse) return;
+      setIsCloudSyncing(true);
+      try {
+        const res = await fetch(
+          `/api/sync?code=${encodeURIComponent(codeToUse)}&pin=${encodeURIComponent(pinToUse)}`
+        );
+        const data = await res.json();
+        if (!res.ok) {
+          if (!silent) showToast(data?.error || "Không thể đồng bộ", "error");
+          return false;
+        }
 
-    fetch("/api/user/favorites")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (cancelled || !data || data.status !== "ok") return;
         const cloudFavs: SavedStickerEntry[] = Array.isArray(data.favorites) ? data.favorites : [];
         const cloudPacks: StickerPack[] = Array.isArray(data.savedPacks) ? data.savedPacks : [];
 
-        // Merge cloud items with local items
+        let mergedFavs: SavedStickerEntry[] = [];
+        let mergedPacks: StickerPack[] = [];
+        let needPush = !data.exists;
+
         setFavoriteStickers((prevLocal) => {
           const map = new Map<string, SavedStickerEntry>();
-          for (const item of cloudFavs) {
-            map.set(item.key, item);
-          }
-          let hasNewLocal = false;
+          for (const item of cloudFavs) map.set(item.key, item);
           for (const item of prevLocal) {
             if (!map.has(item.key)) {
               map.set(item.key, item);
-              hasNewLocal = true;
+              needPush = true;
             }
           }
-          const merged = Array.from(map.values());
+          mergedFavs = Array.from(map.values());
           try {
-            localStorage.setItem("sigstick_vn_fav_stickers", JSON.stringify(merged));
+            localStorage.setItem("sigstick_vn_fav_stickers", JSON.stringify(mergedFavs));
           } catch {}
-
-          if (hasNewLocal) {
-            fetch("/api/user/favorites", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ favorites: merged }),
-            }).catch(() => {});
-          }
-          return merged;
+          return mergedFavs;
         });
 
         setSavedPacks((prevLocal) => {
           const map = new Map<string, StickerPack>();
-          for (const p of cloudPacks) {
-            map.set(p.id, p);
-          }
-          let hasNewLocal = false;
+          for (const p of cloudPacks) map.set(p.id, p);
           for (const p of prevLocal) {
             if (!map.has(p.id)) {
               map.set(p.id, p);
-              hasNewLocal = true;
+              needPush = true;
             }
           }
-          const merged = Array.from(map.values());
+          mergedPacks = Array.from(map.values());
           try {
-            localStorage.setItem("sigstick_vn_saved_packs", JSON.stringify(merged));
+            localStorage.setItem("sigstick_vn_saved_packs", JSON.stringify(mergedPacks));
           } catch {}
-
-          if (hasNewLocal) {
-            fetch("/api/user/favorites", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ savedPacks: merged }),
-            }).catch(() => {});
-          }
-          return merged;
+          return mergedPacks;
         });
 
-        showToast("Đã đồng bộ Sticker yêu thích từ tài khoản Google!", "info");
-      })
-      .catch((err) => {
-        console.error("Cloud sync error:", err);
-      })
-      .finally(() => {
-        if (!cancelled) setIsCloudSyncing(false);
-      });
+        if (needPush) {
+          await fetch("/api/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              code: codeToUse,
+              pin: pinToUse,
+              favorites: mergedFavs,
+              savedPacks: mergedPacks,
+            }),
+          });
+        }
 
-    return () => {
-      cancelled = true;
+        if (!silent) {
+          showToast(`Đã đồng bộ với mã "${codeToUse}"!`, "success");
+        }
+        return true;
+      } catch (err) {
+        console.error("Sync error:", err);
+        if (!silent) showToast("Lỗi kết nối máy chủ đồng bộ", "error");
+        return false;
+      } finally {
+        setIsCloudSyncing(false);
+      }
+    },
+    [showToast]
+  );
+
+  useEffect(() => {
+    if (syncCode) {
+      syncWithServer(syncCode, syncPin, true);
+    }
+  }, [syncCode, syncPin, syncWithServer]);
+
+  const handleConnectSyncCode = async (e?: React.FormEvent, customCode?: string) => {
+    if (e) e.preventDefault();
+    const clean = (customCode ?? syncCodeInput).trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+    if (clean.length < 3) {
+      showToast("Mã đồng bộ cần ít nhất 3 ký tự (chữ hoặc số)", "error");
+      return;
+    }
+    const ok = await syncWithServer(clean, syncPinInput.trim(), false);
+    if (ok) {
+      setSyncCode(clean);
+      setSyncPin(syncPinInput.trim());
+      try {
+        localStorage.setItem("sigstick_vn_sync_code", clean);
+        localStorage.setItem("sigstick_vn_sync_pin", syncPinInput.trim());
+      } catch {}
+      setShowSyncModal(false);
+    }
+  };
+
+  const handleGenerateRandomCode = () => {
+    const randomDigits = Math.floor(1000 + Math.random() * 9000);
+    const randomCode = `SIG-${randomDigits}`;
+    setSyncCodeInput(randomCode);
+  };
+
+  const handleDisconnectSyncCode = () => {
+    setSyncCode("");
+    setSyncPin("");
+    setSyncCodeInput("");
+    setSyncPinInput("");
+    try {
+      localStorage.removeItem("sigstick_vn_sync_code");
+      localStorage.removeItem("sigstick_vn_sync_pin");
+    } catch {}
+    showToast("Đã ngắt kết nối mã đồng bộ", "info");
+    setShowSyncModal(false);
+  };
+
+  const handleExportBackupJson = () => {
+    const payload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      favorites: favoriteStickers,
+      savedPacks,
     };
-  }, [session?.user, showToast]);
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `SigStick-Backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    showToast("Đã tải file sao lưu Sticker yêu thích!", "success");
+  };
+
+  const handleImportBackupJson = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result || "{}"));
+        if (Array.isArray(parsed.favorites)) {
+          persistFavorites(parsed.favorites);
+        }
+        if (Array.isArray(parsed.savedPacks)) {
+          persistSavedPacks(parsed.savedPacks);
+        }
+        showToast("Đã khôi phục dữ liệu Sticker thành công!", "success");
+        setShowSyncModal(false);
+      } catch {
+        showToast("File sao lưu không hợp lệ", "error");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
 
   const handleToggleCopyBgMode = () => {
     const order: BgMode[] = [
@@ -321,18 +382,18 @@ export default function SigStickHomePage() {
     );
   };
 
-  // Save helpers (saves locally + syncs to server if logged in)
+  // Save helpers (saves locally + syncs to server if syncCode is active)
   const persistFavorites = (next: SavedStickerEntry[]) => {
     setFavoriteStickers(next);
     try {
       localStorage.setItem("sigstick_vn_fav_stickers", JSON.stringify(next));
     } catch {}
 
-    if (session?.user) {
-      fetch("/api/user/favorites", {
+    if (syncCode) {
+      fetch("/api/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ favorites: next }),
+        body: JSON.stringify({ code: syncCode, pin: syncPin, favorites: next }),
       }).catch((e) => console.error("Cloud sync favorites failed:", e));
     }
   };
@@ -343,11 +404,11 @@ export default function SigStickHomePage() {
       localStorage.setItem("sigstick_vn_saved_packs", JSON.stringify(next));
     } catch {}
 
-    if (session?.user) {
-      fetch("/api/user/favorites", {
+    if (syncCode) {
+      fetch("/api/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ savedPacks: next }),
+        body: JSON.stringify({ code: syncCode, pin: syncPin, savedPacks: next }),
       }).catch((e) => console.error("Cloud sync saved packs failed:", e));
     }
   };
@@ -806,100 +867,36 @@ export default function SigStickHomePage() {
               <span className="hidden sm:inline">Hướng dẫn</span>
             </button>
 
-            {/* Google Authentication Button / User Profile */}
-            {authStatus === "loading" ? (
-              <div className="w-8 h-8 rounded-xl bg-slate-100 animate-pulse" />
-            ) : session?.user ? (
-              <div className="relative" ref={userMenuRef}>
-                <button
-                  type="button"
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  aria-label="Tài khoản Google"
-                  className="min-h-[38px] flex items-center gap-1.5 p-1 pr-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/90 text-xs font-semibold transition cursor-pointer shadow-2xs active:scale-95"
-                >
-                  {session.user.image ? (
-                    <img
-                      src={session.user.image}
-                      alt={session.user.name || "User"}
-                      className="w-6 h-6 rounded-lg object-cover"
-                    />
-                  ) : (
-                    <div className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
-                      {session.user.name?.[0] || <User className="w-3.5 h-3.5" />}
-                    </div>
-                  )}
-                  <span className="max-w-[70px] sm:max-w-[110px] truncate text-slate-800 text-[11px] sm:text-xs">
-                    {session.user.name?.split(" ").slice(-1)[0] || "Tài khoản"}
-                  </span>
-                  {isCloudSyncing && (
-                    <Loader2 className="w-3 h-3 animate-spin text-teal-600 shrink-0" />
-                  )}
-                </button>
-
-                {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-white border border-slate-200/90 shadow-xl p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="flex items-center gap-2.5 pb-2.5 border-b border-slate-100">
-                      {session.user.image ? (
-                        <img
-                          src={session.user.image}
-                          alt=""
-                          className="w-10 h-10 rounded-xl object-cover shrink-0"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm shrink-0">
-                          {session.user.name?.[0] || "G"}
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-slate-800 truncate">
-                          {session.user.name}
-                        </p>
-                        <p className="text-[10px] text-slate-400 truncate">
-                          {session.user.email}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="py-2.5 text-xs text-slate-600 space-y-1.5 border-b border-slate-100">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] text-slate-500">Sticker yêu thích:</span>
-                        <strong className="text-indigo-600 font-bold">{favoriteStickers.length}</strong>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] text-slate-500">Bộ sticker đã lưu:</span>
-                        <strong className="text-indigo-600 font-bold">{savedPacks.length}</strong>
-                      </div>
-                      <div className="flex items-center gap-1.5 pt-1 text-[10px] text-teal-600 font-medium">
-                        <Cloud className="w-3.5 h-3.5 shrink-0" />
-                        <span>Đã đồng bộ Google Account</span>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowUserMenu(false);
-                        signOut();
-                      }}
-                      className="w-full mt-2 py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
-                    >
-                      <LogOut className="w-3.5 h-3.5" />
-                      <span>Đăng xuất</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => signIn("google")}
-                className="min-h-[38px] flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-700 text-xs font-semibold shadow-2xs transition cursor-pointer active:scale-95"
-                title="Đăng nhập Google để lưu Sticker yêu thích riêng"
-              >
-                <GoogleIcon className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline">Đăng nhập</span>
-              </button>
-            )}
+            {/* Sync Code / Cloud Save Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setSyncCodeInput(syncCode);
+                setSyncPinInput(syncPin);
+                setShowSyncModal(true);
+              }}
+              className={`min-h-[38px] flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-semibold shadow-2xs transition cursor-pointer active:scale-95 ${
+                syncCode
+                  ? "bg-teal-50/90 hover:bg-teal-100/80 border-teal-200 text-teal-700"
+                  : "bg-white hover:bg-slate-50 border-slate-200/90 text-slate-700"
+              }`}
+              title={
+                syncCode
+                  ? `Đang đồng bộ mã: ${syncCode}`
+                  : "Đồng bộ Sticker yêu thích qua Mã cá nhân (Không cần mật khẩu)"
+              }
+            >
+              {isCloudSyncing ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-600 shrink-0" />
+              ) : syncCode ? (
+                <Cloud className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+              ) : (
+                <KeyRound className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+              )}
+              <span className="hidden sm:inline">
+                {syncCode ? syncCode : "Đồng bộ"}
+              </span>
+            </button>
           </div>
         </div>
       </header>
@@ -1412,30 +1409,34 @@ export default function SigStickHomePage() {
               )}
             </div>
 
-            {/* Google Sync Status / Sign-in Banner for Favorites */}
+            {/* Simple Sync Code Banner for Favorites */}
             {mainTab === "favorites" && (
-              !session?.user ? (
+              !syncCode ? (
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-indigo-50/80 via-sky-50/80 to-teal-50/80 border border-indigo-100 shadow-2xs">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-2xs border border-indigo-100 shrink-0">
-                      <GoogleIcon className="w-5 h-5" />
+                      <KeyRound className="w-5 h-5 text-indigo-600" />
                     </div>
                     <div>
                       <p className="text-xs sm:text-sm font-bold text-slate-800">
-                        Đăng nhập Google để lưu Sticker yêu thích riêng
+                        Đồng bộ Sticker yêu thích đa thiết bị (Không cần mật khẩu)
                       </p>
                       <p className="text-[11px] text-slate-500">
-                        Đồng bộ kho sticker yêu thích của bạn lên đám mây, không lo mất khi đổi máy hoặc xóa dữ liệu trình duyệt.
+                        Tạo hoặc nhập một <strong>Mã đồng bộ</strong> riêng (vd: THINH99) để lưu và đồng bộ sticker giữa điện thoại & máy tính.
                       </p>
                     </div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => signIn("google")}
-                    className="min-h-[38px] px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 flex items-center gap-2 shadow-2xs transition active:scale-95 shrink-0 cursor-pointer"
+                    onClick={() => {
+                      setSyncCodeInput("");
+                      setSyncPinInput("");
+                      setShowSyncModal(true);
+                    }}
+                    className="min-h-[38px] px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs transition active:scale-95 shrink-0 cursor-pointer"
                   >
-                    <GoogleIcon className="w-4 h-4" />
-                    <span>Đăng nhập Google</span>
+                    <KeyRound className="w-3.5 h-3.5" />
+                    <span>Tạo / Nhập mã</span>
                   </button>
                 </div>
               ) : (
@@ -1443,15 +1444,28 @@ export default function SigStickHomePage() {
                   <div className="flex items-center gap-2 font-medium">
                     <Cloud className="w-4 h-4 text-teal-600 shrink-0" />
                     <span>
-                      Đang đồng bộ đám mây cho tài khoản: <strong>{session.user.email}</strong>
+                      Đang đồng bộ tự động với mã: <strong className="font-mono text-teal-900">{syncCode}</strong>
                     </span>
                   </div>
-                  {isCloudSyncing && (
-                    <span className="text-[10px] text-teal-600 flex items-center gap-1 shrink-0">
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      Đang đồng bộ...
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {isCloudSyncing && (
+                      <span className="text-[10px] text-teal-600 flex items-center gap-1 shrink-0">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Đang đồng bộ...
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSyncCodeInput(syncCode);
+                        setSyncPinInput(syncPin);
+                        setShowSyncModal(true);
+                      }}
+                      className="text-[11px] font-bold text-teal-700 hover:text-teal-900 underline cursor-pointer"
+                    >
+                      Quản lý
+                    </button>
+                  </div>
                 </div>
               )
             )}
@@ -1881,6 +1895,152 @@ export default function SigStickHomePage() {
                 <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-indigo-600 border border-slate-200 font-semibold text-[11px]">
                   {APP_VERSION}
                 </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sync Code & Backup Modal (Zero-config cross-device sync) */}
+      {showSyncModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/45 backdrop-blur-xs p-0 sm:p-4"
+          onClick={() => setShowSyncModal(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden text-slate-800"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Mobile Drag Handle */}
+            <div className="sm:hidden flex justify-center pt-2 pb-0.5 bg-white">
+              <div className="w-10 h-1 rounded-full bg-slate-200" />
+            </div>
+
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/70">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                  <KeyRound className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm sm:text-base">
+                    Đồng bộ Sticker Yêu thích
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Không cần tài khoản Google hay mật khẩu rườm rà
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSyncModal(false)}
+                className="p-1.5 rounded-xl hover:bg-slate-200 text-slate-500 hover:text-slate-800 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 text-sm">
+              {/* Sync Code Form */}
+              <form onSubmit={(e) => handleConnectSyncCode(e)} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Mã đồng bộ cá nhân (từ 3 ký tự trở lên)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={syncCodeInput}
+                      onChange={(e) =>
+                        setSyncCodeInput(
+                          e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, "")
+                        )
+                      }
+                      placeholder="VD: THINH99 hoặc SIG-1234"
+                      className="flex-1 px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm font-mono font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleGenerateRandomCode}
+                      className="px-3 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-bold border border-indigo-200/80 shrink-0 cursor-pointer transition"
+                      title="Tạo mã ngẫu nhiên"
+                    >
+                      Tạo mã
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    Mã PIN bảo vệ (tùy chọn)
+                  </label>
+                  <input
+                    type="password"
+                    value={syncPinInput}
+                    onChange={(e) => setSyncPinInput(e.target.value)}
+                    placeholder="Bỏ trống nếu không cần đặt PIN"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="submit"
+                    disabled={isCloudSyncing}
+                    className="flex-1 min-h-[42px] px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 shadow-sm transition cursor-pointer disabled:opacity-50"
+                  >
+                    {isCloudSyncing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Đang đồng bộ...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Cloud className="w-4 h-4" />
+                        <span>{syncCode ? "Cập nhật & Đồng bộ ngay" : "Kết nối & Đồng bộ"}</span>
+                      </>
+                    )}
+                  </button>
+
+                  {syncCode && (
+                    <button
+                      type="button"
+                      onClick={handleDisconnectSyncCode}
+                      className="min-h-[42px] px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-semibold border border-rose-200 flex items-center gap-1 cursor-pointer transition"
+                      title="Ngắt kết nối mã đồng bộ"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Ngắt</span>
+                    </button>
+                  )}
+                </div>
+              </form>
+
+              {/* Backup / Restore JSON Section */}
+              <div className="pt-3 border-t border-slate-100 space-y-2">
+                <p className="text-xs font-bold text-slate-700">
+                  Hoặc Sao lưu / Khôi phục bằng File (Offline 100%)
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={handleExportBackupJson}
+                    className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 border border-slate-200 transition cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Xuất file Backup</span>
+                  </button>
+
+                  <label className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 border border-slate-200 transition cursor-pointer">
+                    <Upload className="w-3.5 h-3.5 text-teal-600" />
+                    <span>Nhập file Backup</span>
+                    <input
+                      type="file"
+                      accept=".json,application/json"
+                      onChange={handleImportBackupJson}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
               </div>
             </div>
           </div>
