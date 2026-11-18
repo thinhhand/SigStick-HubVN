@@ -79,13 +79,19 @@ export function normalizeCdnUrl(input?: { url?: string } | string | null): strin
 }
 
 /**
- * Luôn trả về URL ảnh gốc độ phân giải tối đa từ CDN để hiển thị sắc nét tuyệt đối trên màn hình Retina/Mobile
+ * Trả về URL thumbnail tối ưu từ CDN (.thumb128 / .thumb256) giúp lưới sticker trên Mobile load cực nhanh và nhẹ,
+ * trong khi khi bấm Gửi / Copy / Xem lớn vẫn dùng normalizeCdnUrl() độ phân giải gốc tối đa.
  */
 export function getThumbnailUrl(
   input?: { url?: string } | string | null,
-  _size: 128 | 256 = 256
+  size: 128 | 256 = 128
 ): string {
-  return normalizeCdnUrl(input);
+  const base = normalizeCdnUrl(input);
+  if (!base) return '';
+  if (base.includes('cdn2.cdnstep.com/') && /\.(png|webp)$/i.test(base)) {
+    return base.replace(/\.(png|webp)$/i, `.thumb${size}.png`);
+  }
+  return base;
 }
 
 /**

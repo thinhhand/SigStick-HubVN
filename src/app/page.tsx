@@ -52,9 +52,18 @@ import {
   setDefaultStickerSize,
   shareSticker,
 } from "@/lib/stickerActions";
-import PackDetailModal from "@/components/PackDetailModal";
-import StickerStudioModal from "@/components/StickerStudioModal";
+import dynamic from "next/dynamic";
 import { APP_VERSION } from "@/config/version";
+
+const PackDetailModal = dynamic(() => import("@/components/PackDetailModal"), {
+  ssr: false,
+});
+const StickerStudioModal = dynamic(
+  () => import("@/components/StickerStudioModal"),
+  {
+    ssr: false,
+  }
+);
 
 export interface SavedStickerEntry {
   key: string; // normalized sticker URL
@@ -106,7 +115,7 @@ export default function SigStickHomePage() {
   const [savedPacks, setSavedPacks] = useState<StickerPack[]>([]);
   const [recentStickers, setRecentStickers] = useState<SavedStickerEntry[]>([]);
   const [copyBgMode, setCopyBgMode] = useState<BgMode>("transparent");
-  const [stickerSize, setStickerSize] = useState<StickerSizePreset>(1024);
+  const [stickerSize, setStickerSize] = useState<StickerSizePreset>(512);
 
   // Modals & Active Selections
   const [selectedPack, setSelectedPack] = useState<StickerPack | null>(null);
@@ -706,16 +715,9 @@ export default function SigStickHomePage() {
 
   return (
     <div className="min-h-dvh flex flex-col bg-[#f4f7fb] text-slate-800 pb-20 lg:pb-0">
-      {/* Soft Pastel Ambient Background Accents */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden z-0">
-        <div className="absolute -top-32 -left-32 w-80 h-80 bg-indigo-200/40 rounded-full blur-[100px]" />
-        <div className="absolute top-16 right-0 w-72 h-72 bg-sky-200/35 rounded-full blur-[110px]" />
-        <div className="absolute bottom-10 left-1/3 w-80 h-80 bg-rose-200/25 rounded-full blur-[120px]" />
-      </div>
-
-      {/* Compact Sticky App Bar */}
-      <header className="sticky top-0 z-30 backdrop-blur-xl bg-white/85 border-b border-slate-200/80 shadow-[0_1px_3px_rgba(15,23,42,0.03)]">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
+      {/* Compact Sticky App Bar (No heavy blur on mobile for 60fps scrolling) */}
+      <header className="sticky top-0 z-30 bg-white/95 sm:backdrop-blur-md border-b border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-13 sm:h-15 flex items-center justify-between gap-2">
           {/* Brand Logo */}
           <div
             onClick={() => {
@@ -723,25 +725,25 @@ export default function SigStickHomePage() {
               setActiveQuery("");
               setSearchInput("");
             }}
-            className="flex items-center gap-2.5 cursor-pointer group shrink-0"
+            className="flex items-center gap-2 cursor-pointer group shrink-0"
           >
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-indigo-500 via-sky-500 to-teal-400 flex items-center justify-center shadow-sm shadow-indigo-500/20 group-hover:scale-105 transition">
-              <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white fill-white/20" />
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-indigo-500 via-sky-500 to-teal-400 flex items-center justify-center shadow-xs">
+              <MessageCircle className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-white fill-white/20" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-base sm:text-lg tracking-tight text-slate-800">
+                <span className="font-extrabold text-sm sm:text-base tracking-tight text-slate-800">
                   SigStick
                 </span>
                 <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200/80">
                   VN
                 </span>
-                <span className="text-[10px] font-semibold font-mono px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200/80">
+                <span className="hidden sm:inline text-[10px] font-semibold font-mono px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200/80">
                   {APP_VERSION}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 hidden sm:block">
-                Sticker cho Messenger & Zalo • Tự động chuyển động & Nền trong suốt 100%
+              <p className="text-[11px] text-slate-500 hidden md:block">
+                Sticker Messenger & Zalo • Chuyển động & Nền trong suốt
               </p>
             </div>
           </div>
@@ -805,66 +807,38 @@ export default function SigStickHomePage() {
             </button>
           </nav>
 
-          {/* Right Quick Actions (Mobile-Ergonomic) */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Right Quick Actions (Clean & Compact on Mobile) */}
+          <div className="flex items-center gap-1.5">
             <button
               onClick={handleToggleStickerSize}
-              title="Đổi độ phân giải Sticker khi gửi qua Zalo / Messenger"
-              className="min-h-[38px] flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl bg-indigo-50/90 hover:bg-indigo-100/80 text-indigo-700 border border-indigo-200/90 text-[11px] sm:text-xs font-semibold transition cursor-pointer active:scale-95"
+              title="Đổi độ phân giải Sticker"
+              className="min-h-[36px] flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100/80 text-indigo-700 border border-indigo-200/80 text-[11px] sm:text-xs font-semibold transition cursor-pointer active:scale-95"
             >
               <Maximize2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-              <span>
-                {stickerSize === 1024
-                  ? "Max HD (1024px)"
-                  : stickerSize === 512
-                  ? "Chuẩn HD (512px)"
-                  : "Nhanh (320px)"}
-              </span>
+              <span>{stickerSize}px</span>
             </button>
 
             <button
               onClick={handleToggleCopyBgMode}
-              title="Chế độ nền chống đen/trắng khi gửi Sticker qua Zalo"
-              className="min-h-[38px] flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-teal-50/90 hover:bg-teal-100/80 text-teal-700 border border-teal-200/90 text-xs font-semibold transition cursor-pointer active:scale-95"
+              title="Chế độ nền khi gửi Sticker"
+              className="hidden sm:flex min-h-[36px] items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100/80 text-teal-700 border border-teal-200/80 text-xs font-semibold transition cursor-pointer active:scale-95"
             >
               <span
-                className={`w-2.5 h-2.5 rounded-full border shrink-0 ${
+                className={`w-2 h-2 rounded-full border shrink-0 ${
                   copyBgMode === "zalo-mobile"
                     ? "bg-[#e2e9f1] border-sky-500"
-                    : copyBgMode === "zalo-light"
-                    ? "bg-[#ebecf0] border-slate-400"
                     : copyBgMode === "zalo-dark"
                     ? "bg-[#22262b] border-slate-600"
                     : "bg-white border-dashed border-teal-500"
                 }`}
               />
-              <span className="hidden md:inline">
-                {copyBgMode === "zalo-mobile"
-                  ? "Zalo ĐT (#e2e9f1)"
-                  : copyBgMode === "zalo-light"
-                  ? "Zalo PC"
-                  : copyBgMode === "zalo-dark"
-                  ? "Zalo Tối"
-                  : "Trong suốt"}
-              </span>
-              <span className="md:hidden text-[11px]">
+              <span>
                 {copyBgMode === "zalo-mobile"
                   ? "Zalo ĐT"
-                  : copyBgMode === "zalo-light"
-                  ? "Zalo PC"
                   : copyBgMode === "zalo-dark"
                   ? "Zalo Tối"
                   : "Trong suốt"}
               </span>
-            </button>
-
-            <button
-              onClick={() => setShowGuideModal(true)}
-              aria-label="Hướng dẫn sử dụng"
-              className="min-h-[38px] flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-700 border border-slate-200/90 text-xs font-semibold transition cursor-pointer active:scale-95"
-            >
-              <HelpCircle className="w-4 h-4 text-indigo-500" />
-              <span className="hidden sm:inline">Hướng dẫn</span>
             </button>
 
             {/* Sync Code / Cloud Save Button */}
@@ -875,15 +849,15 @@ export default function SigStickHomePage() {
                 setSyncPinInput(syncPin);
                 setShowSyncModal(true);
               }}
-              className={`min-h-[38px] flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-semibold shadow-2xs transition cursor-pointer active:scale-95 ${
+              className={`min-h-[36px] flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[11px] sm:text-xs font-semibold transition cursor-pointer active:scale-95 ${
                 syncCode
-                  ? "bg-teal-50/90 hover:bg-teal-100/80 border-teal-200 text-teal-700"
-                  : "bg-white hover:bg-slate-50 border-slate-200/90 text-slate-700"
+                  ? "bg-teal-50 hover:bg-teal-100/80 border-teal-200 text-teal-700"
+                  : "bg-slate-50 hover:bg-slate-100 border-slate-200/90 text-slate-700"
               }`}
               title={
                 syncCode
                   ? `Đang đồng bộ mã: ${syncCode}`
-                  : "Đồng bộ Sticker yêu thích qua Mã cá nhân (Không cần mật khẩu)"
+                  : "Đồng bộ Sticker yêu thích qua Mã cá nhân"
               }
             >
               {isCloudSyncing ? (
@@ -893,25 +867,34 @@ export default function SigStickHomePage() {
               ) : (
                 <KeyRound className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
               )}
-              <span className="hidden sm:inline">
+              <span className="truncate max-w-[72px] sm:max-w-none">
                 {syncCode ? syncCode : "Đồng bộ"}
               </span>
+            </button>
+
+            <button
+              onClick={() => setShowGuideModal(true)}
+              aria-label="Hướng dẫn sử dụng"
+              className="min-h-[36px] min-w-[36px] flex items-center justify-center sm:px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-700 border border-slate-200/90 text-xs font-semibold transition cursor-pointer active:scale-95"
+            >
+              <HelpCircle className="w-4 h-4 text-indigo-500" />
+              <span className="hidden md:inline ml-1">Mẹo</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Content Container */}
-      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-3 sm:py-5 space-y-3.5 sm:space-y-5">
-        {/* Compact Search & Tag Bar (Always reachable, doesn't push content off-screen on mobile) */}
-        <section className="rounded-2xl sm:rounded-3xl bg-white/90 backdrop-blur-md border border-slate-200/80 p-3 sm:p-5 shadow-[0_2px_12px_rgba(15,23,42,0.04)]">
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-6 py-2.5 sm:py-4 space-y-3 sm:space-y-4">
+        {/* Compact Search & Tag Bar */}
+        <section className="rounded-2xl bg-white border border-slate-200/80 p-2.5 sm:p-4 shadow-[0_1px_4px_rgba(15,23,42,0.03)]">
           {/* Search Form */}
           <form
             onSubmit={(e) => handleSearchSubmit(e)}
             className="relative max-w-3xl mx-auto"
           >
             <div className="relative flex items-center">
-              <Search className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 absolute left-3.5 pointer-events-none" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
               <input
                 type="text"
                 value={searchInput}
@@ -919,7 +902,7 @@ export default function SigStickHomePage() {
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 180)}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Tìm sticker (Mèo, Bubu Dudu, Chiikawa...) hoặc dán link..."
-                className="w-full pl-10 sm:pl-11 pr-24 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-slate-50/90 border border-slate-200/90 text-base sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-indigo-400 focus:ring-3 focus:ring-indigo-500/10 transition"
+                className="w-full pl-9 pr-20 py-2 sm:py-2.5 rounded-xl bg-slate-50 border border-slate-200/90 text-base sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-indigo-400 transition"
               />
               {searchInput && (
                 <button
@@ -931,7 +914,7 @@ export default function SigStickHomePage() {
                     }
                   }}
                   aria-label="Xóa từ khóa"
-                  className="absolute right-20 p-1.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  className="absolute right-16 p-1.5 text-slate-400 hover:text-slate-600 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -939,7 +922,7 @@ export default function SigStickHomePage() {
               <button
                 type="submit"
                 disabled={isLoadingDirectPack}
-                className="absolute right-1.5 px-3.5 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition shadow-xs cursor-pointer active:scale-95"
+                className="absolute right-1 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition cursor-pointer active:scale-95"
               >
                 {isLoadingDirectPack ? "Mở..." : "Tìm"}
               </button>
@@ -947,12 +930,8 @@ export default function SigStickHomePage() {
 
             {/* Autocomplete Suggestions Dropdown */}
             {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-30">
-                <div className="px-3 py-1.5 text-[11px] font-semibold text-slate-400 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                  <span>Gợi ý tìm kiếm</span>
-                  <span>Chạm để chọn</span>
-                </div>
-                <div className="divide-y divide-slate-100 max-h-56 overflow-y-auto">
+              <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden z-30">
+                <div className="divide-y divide-slate-100 max-h-52 overflow-y-auto">
                   {suggestions.map((sug) => (
                     <button
                       type="button"
@@ -973,7 +952,7 @@ export default function SigStickHomePage() {
           </form>
 
           {/* Popular Tag Chips (Single compact scrollable row) */}
-          <div className="max-w-3xl mx-auto mt-2.5 flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+          <div className="max-w-3xl mx-auto mt-2 flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
             {POPULAR_TAGS.map((tag) => {
               const isSelected =
                 activeQuery.toLowerCase() === tag.query.toLowerCase();
@@ -984,9 +963,9 @@ export default function SigStickHomePage() {
                     setSearchInput(tag.query);
                     handleSearchSubmit(undefined, tag.query);
                   }}
-                  className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition cursor-pointer border active:scale-95 ${
+                  className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-medium transition cursor-pointer border active:scale-95 ${
                     isSelected
-                      ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                      ? "bg-indigo-600 text-white border-indigo-600"
                       : "bg-slate-100/80 hover:bg-slate-200/70 text-slate-600 border-slate-200/70"
                   }`}
                 >
@@ -1131,10 +1110,15 @@ export default function SigStickHomePage() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
-                  {packs.map((pack) => {
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4">
+                  {packs.map((pack, packIdx) => {
                     const animated = isPackAnimated(pack);
                     const isSaved = savedPackIdSet.has(pack.id);
+                    const rawCoverUrl = pack.cover?.url
+                      ? normalizeCdnUrl(pack.cover.url)
+                      : pack.stickers?.[0]?.url
+                      ? normalizeCdnUrl(pack.stickers[0].url)
+                      : "";
                     const coverUrl = pack.cover?.url
                       ? getThumbnailUrl(pack.cover.url, 128)
                       : pack.stickers?.[0]?.url
@@ -1146,7 +1130,7 @@ export default function SigStickHomePage() {
                       <div
                         key={pack.id}
                         onClick={() => openPackDetail(pack)}
-                        className="group relative rounded-2xl bg-white hover:bg-slate-50/60 border border-slate-200/80 hover:border-indigo-300 p-2.5 sm:p-4 transition-all duration-200 flex flex-col justify-between cursor-pointer shadow-[0_1px_4px_rgba(15,23,42,0.03)] hover:shadow-md"
+                        className="cv-auto group relative rounded-2xl bg-white hover:bg-slate-50/60 border border-slate-200/80 hover:border-indigo-300 p-2.5 sm:p-4 transition-colors duration-150 flex flex-col justify-between cursor-pointer shadow-[0_1px_3px_rgba(15,23,42,0.03)] active:scale-[0.99]"
                       >
                         {/* Pack Card Header */}
                         <div className="flex items-start gap-2 sm:gap-3">
@@ -1155,8 +1139,17 @@ export default function SigStickHomePage() {
                               <img
                                 src={coverUrl}
                                 alt={pack.title}
-                                className="w-full h-full object-contain group-hover:scale-105 transition duration-200"
-                                loading="lazy"
+                                className="w-full h-full object-contain"
+                                loading={packIdx < 6 ? "eager" : "lazy"}
+                                decoding="async"
+                                onError={(e) => {
+                                  if (
+                                    rawCoverUrl &&
+                                    e.currentTarget.src !== rawCoverUrl
+                                  ) {
+                                    e.currentTarget.src = rawCoverUrl;
+                                  }
+                                }}
                               />
                             ) : (
                               <Sparkles className="w-5 h-5 text-indigo-400" />
@@ -1207,7 +1200,7 @@ export default function SigStickHomePage() {
                         </div>
 
                         {/* 4 Preview Stickers with 1-Click Copy */}
-                        <div className="grid grid-cols-4 gap-1.5 sm:gap-2 my-2.5 sm:my-3">
+                        <div className="grid grid-cols-4 gap-1 sm:gap-2 my-2 sm:my-3">
                           {previewStickers.map((st, idx) => {
                             const thumbUrl = getThumbnailUrl(st.url, 128);
                             const previewKey = normalizeCdnUrl(st.url);
@@ -1221,16 +1214,25 @@ export default function SigStickHomePage() {
                                   handleQuickPreviewCopy(e, pack, st)
                                 }
                                 title="Chạm để Copy nhanh sticker này"
-                                className="relative aspect-square rounded-lg sm:rounded-xl bg-slate-50/90 hover:bg-indigo-50/50 border border-slate-200/60 hover:border-indigo-300 p-1 sm:p-1.5 flex items-center justify-center overflow-hidden group/st transition active:scale-95"
+                                className="relative aspect-square rounded-lg sm:rounded-xl bg-slate-50/90 hover:bg-indigo-50/50 border border-slate-200/60 hover:border-indigo-300 p-1 sm:p-1.5 flex items-center justify-center overflow-hidden transition active:scale-95"
                               >
                                 <img
                                   src={thumbUrl}
                                   alt={getEmojiString(st.emoji)}
-                                  className="w-full h-full object-contain group-hover/st:scale-105 transition"
-                                  loading="lazy"
+                                  className="w-full h-full object-contain"
+                                  loading={packIdx < 4 ? "eager" : "lazy"}
+                                  decoding="async"
+                                  onError={(e) => {
+                                    if (
+                                      previewKey &&
+                                      e.currentTarget.src !== previewKey
+                                    ) {
+                                      e.currentTarget.src = previewKey;
+                                    }
+                                  }}
                                 />
                                 {(isCopying || isCopied) && (
-                                  <div className="absolute inset-0 bg-white/90 backdrop-blur-[1px] flex flex-col items-center justify-center gap-0.5 text-[9px] font-bold text-indigo-600">
+                                  <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center gap-0.5 text-[9px] font-bold text-indigo-600">
                                     {isCopying ? (
                                       <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
                                     ) : (
@@ -1249,10 +1251,10 @@ export default function SigStickHomePage() {
                             {pack.download ? `${formatCount(pack.download)} tải` : "Chạm hình để Copy"}
                           </span>
                           <span className="text-slate-400 truncate sm:hidden text-[10px]">
-                            Chạm để mở
+                            {pack.download ? `${formatCount(pack.download)} tải` : "Mở bộ"}
                           </span>
                           <span className="font-semibold text-indigo-600 flex items-center gap-0.5 ml-auto">
-                            <span>Mở bộ</span>
+                            <span>Xem</span>
                             <ChevronRight className="w-3 h-3" />
                           </span>
                         </div>
@@ -1486,7 +1488,7 @@ export default function SigStickHomePage() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
                 {(mainTab === "favorites"
                   ? favoriteStickers
                   : recentStickers
@@ -1496,7 +1498,7 @@ export default function SigStickHomePage() {
                   return (
                     <div
                       key={entry.key}
-                      className="group relative rounded-2xl bg-[#e2e9f1]/60 hover:bg-[#e2e9f1] border border-slate-200/80 hover:border-[#0068ff]/50 p-2.5 flex flex-col items-center justify-between gap-2 transition shadow-2xs"
+                      className="group relative rounded-2xl bg-white hover:bg-sky-50/40 border border-slate-200/80 hover:border-indigo-300 p-2 flex flex-col items-center justify-between gap-1.5 transition shadow-2xs"
                     >
                       <div
                         onClick={async () => {
@@ -1506,15 +1508,15 @@ export default function SigStickHomePage() {
                               {
                                 bg: copyBgMode,
                                 size: stickerSize,
-                                addWhiteStroke: true,
+                                addWhiteStroke: false,
                                 preferGif: animated,
                               },
                               entry.pack.title
                             );
                             showToast(
                               res === "shared"
-                                ? `Đã mở bảng chia sẻ Messenger & Zalo (${animated ? "GIF" : "PNG"} • ${stickerSize}px)!`
-                                : `Đã Copy Sticker nền trong suốt (${stickerSize}px)!`,
+                                ? `Đã mở chia sẻ (${animated ? "GIF" : "PNG"} • ${stickerSize}px)!`
+                                : `Đã Copy Sticker (${stickerSize}px)!`,
                               "success"
                             );
                           } catch {
@@ -1524,18 +1526,26 @@ export default function SigStickHomePage() {
                             });
                           }
                         }}
-                        className="w-full aspect-square flex items-center justify-center cursor-pointer active:scale-95 transition"
+                        className="w-full aspect-square flex items-center justify-center cursor-pointer active:scale-95 transition p-1"
                       >
                         <img
                           src={thumbUrl}
                           alt={entry.pack.title}
-                          className="w-full h-full object-contain group-hover:scale-105 transition drop-shadow-[0_0_2px_#fff]"
+                          className="w-full h-full object-contain"
                           loading="lazy"
                           decoding="async"
+                          onError={(e) => {
+                            if (
+                              entry.key &&
+                              e.currentTarget.src !== entry.key
+                            ) {
+                              e.currentTarget.src = entry.key;
+                            }
+                          }}
                         />
                       </div>
 
-                      <div className="w-full flex items-center justify-between gap-1 pt-1.5 border-t border-slate-200/70">
+                      <div className="w-full flex items-center justify-between gap-1 pt-1 border-t border-slate-100">
                         <button
                           onClick={async () => {
                             try {
@@ -1544,7 +1554,7 @@ export default function SigStickHomePage() {
                                 {
                                   bg: copyBgMode,
                                   size: stickerSize,
-                                  addWhiteStroke: true,
+                                  addWhiteStroke: false,
                                   preferGif: animated,
                                 },
                                 entry.pack.title
@@ -1559,11 +1569,11 @@ export default function SigStickHomePage() {
                               showToast("Không thể chia sẻ tự động", "error");
                             }
                           }}
-                          title="Chia sẻ qua Zalo (Chuẩn GIF/PNG + Cỡ 180px + Có viền)"
-                          className="flex-1 py-1 rounded-lg bg-[#0068ff] hover:bg-[#0057d9] text-white text-[10px] font-bold flex items-center justify-center gap-1 transition cursor-pointer"
+                          title="Gửi qua Zalo / Messenger"
+                          className="flex-1 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold flex items-center justify-center gap-1 transition cursor-pointer active:scale-95"
                         >
                           <Share2 className="w-2.5 h-2.5" />
-                          Zalo
+                          <span>Gửi</span>
                         </button>
                         <button
                           onClick={() =>
@@ -1572,8 +1582,8 @@ export default function SigStickHomePage() {
                               pack: entry.pack,
                             })
                           }
-                          title="Mở Studio / Tải GIF"
-                          className="p-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-600 cursor-pointer"
+                          title="Xem lớn & tùy chỉnh"
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 cursor-pointer"
                         >
                           <Wand2 className="w-3 h-3" />
                         </button>
@@ -1582,7 +1592,7 @@ export default function SigStickHomePage() {
                             toggleFavoriteSticker(entry.sticker, entry.pack)
                           }
                           title="Bỏ yêu thích"
-                          className="p-1.5 rounded-lg bg-white hover:bg-rose-50 text-rose-500 cursor-pointer"
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-rose-500 cursor-pointer"
                         >
                           <Heart
                             className={`w-3 h-3 ${
@@ -1671,10 +1681,10 @@ export default function SigStickHomePage() {
         )}
       </main>
 
-      {/* Mobile Fixed Bottom Navigation Bar (<= 5 items, 48px+ touch target, safe area) */}
+      {/* Mobile Fixed Bottom Navigation Bar (<= 5 items, 48px+ touch target, safe area, zero GPU blur lag) */}
       <nav
         aria-label="Điều hướng chính"
-        className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-xl border-t border-slate-200/90 shadow-[0_-2px_10px_rgba(15,23,42,0.04)] pb-safe"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white/98 border-t border-slate-200/90 shadow-[0_-1px_8px_rgba(15,23,42,0.04)] pb-safe"
       >
         <div className="grid grid-cols-5 h-14 px-1">
           <button

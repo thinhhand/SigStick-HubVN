@@ -32,6 +32,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi">
+      <head>
+        <link rel="preconnect" href="https://cdn2.cdnstep.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://cdn2.cdnstep.com" />
+        <link rel="dns-prefetch" href="https://api.sigstick.com" />
+      </head>
       <body className="min-h-dvh bg-[#f4f7fb] text-slate-800 antialiased selection:bg-indigo-500/15 selection:text-indigo-700">
         {children}
       </body>

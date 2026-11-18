@@ -33,6 +33,12 @@ input,
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
 }
 
+/* Optimize off-screen card rendering on mobile long lists */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 210px;
+}
+
 /* Custom sleek soft scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
@@ -51,4 +57,5 @@ input,
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(99, 102, 241, 0.65);
 }
+
 

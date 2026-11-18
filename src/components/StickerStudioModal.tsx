@@ -57,16 +57,14 @@ export default function StickerStudioModal({
   const [copiedDone, setCopiedDone] = useState(false);
   const [downloadingFormat, setDownloadingFormat] = useState<'gif' | 'png' | null>(null);
 
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const rawStickerUrl = normalizeCdnUrl(sticker.url);
 
-  // URL xem trước ảnh GIF động chất lượng cao
-  const previewGifUrl = getConvertedStickerUrl(
-    rawStickerUrl,
-    'gif',
-    bgMode,
-    stickerSize,
-    addWhiteStroke
-  );
+  // Mặc định dùng trực tiếp ảnh gốc CDN (hiển thị tức thì 0ms). Khi bật viền trắng hoặc đổi màu nền mới gọi API convert.
+  const needsCustomRender = bgMode !== 'transparent' || addWhiteStroke;
+  const previewUrl = needsCustomRender
+    ? getConvertedStickerUrl(rawStickerUrl, 'gif', bgMode, 512, addWhiteStroke)
+    : rawStickerUrl;
 
   const handleShare = async () => {
     setIsSharing(true);
@@ -206,16 +204,22 @@ export default function StickerStudioModal({
         {/* Modal Body */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-4">
           {/* Live Animated Sticker Preview on Checkerboard */}
-          <div className="relative aspect-square max-w-[280px] sm:max-w-[320px] mx-auto rounded-2xl border border-slate-200/80 p-4 flex items-center justify-center overflow-hidden shadow-inner bg-[linear-gradient(45deg,#f1f5f9_25%,transparent_25%),linear-gradient(-45deg,#f1f5f9_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#f1f5f9_75%),linear-gradient(-45deg,transparent_75%,#f1f5f9_75%)] bg-[size:20px_20px] bg-[position:0_0,0_10px,10px_-10px,-10px_0px]">
+          <div className="relative aspect-square max-w-[240px] sm:max-w-[300px] mx-auto rounded-2xl border border-slate-200/80 p-4 flex items-center justify-center overflow-hidden shadow-inner bg-[linear-gradient(45deg,#f1f5f9_25%,transparent_25%),linear-gradient(-45deg,#f1f5f9_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#f1f5f9_75%),linear-gradient(-45deg,transparent_75%,#f1f5f9_75%)] bg-[size:20px_20px] bg-[position:0_0,0_10px,10px_-10px,-10px_0px]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={previewGifUrl}
+              src={previewUrl}
               alt={pack.title}
-              className="max-w-full max-h-full object-contain filter drop-shadow-sm select-none"
+              onLoad={() => setIsPreviewLoading(false)}
+              className="max-w-full max-h-full object-contain select-none"
               loading="eager"
               decoding="async"
             />
-            <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-900/70 text-white backdrop-blur-xs">
+            {isPreviewLoading && (
+              <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
+              </div>
+            )}
+            <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-900/70 text-white">
               GIF Động • Nền trong suốt
             </div>
           </div>

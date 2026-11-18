@@ -1,5 +1,20 @@
-import JSZip from 'jszip';
 import { StickerPack, normalizeCdnUrl } from './sigstick';
+
+// Bộ nhớ đệm Blob phía Client giúp chạm lần 2 hoặc chia sẻ lại sticker tức thì (0ms network wait)
+const clientBlobCache = new Map<string, Blob>();
+const MAX_CLIENT_BLOB_CACHE = 40;
+
+function getCachedBlob(key: string): Blob | undefined {
+  return clientBlobCache.get(key);
+}
+
+function setCachedBlob(key: string, blob: Blob): void {
+  if (clientBlobCache.size >= MAX_CLIENT_BLOB_CACHE) {
+    const oldest = clientBlobCache.keys().next().value;
+    if (oldest) clientBlobCache.delete(oldest);
+  }
+  clientBlobCache.set(key, blob);
+}
 
 export type BgMode =
   | 'transparent'
@@ -20,20 +35,20 @@ export const STICKER_SIZE_OPTIONS: Array<{
   {
     size: 1024,
     label: 'Tối đa (1024px Ultra HD - Siêu nét)',
-    shortLabel: 'Max HD (1024px)',
+    shortLabel: '1024px',
     desc: 'Độ phân giải tối đa Ultra HD (Lanczos-3 + Khử răng cưa), cực kỳ sắc nét trên màn hình Retina/Mobile',
   },
   {
     size: 512,
-    label: 'Chuẩn HD (512px - Sắc nét)',
-    shortLabel: 'HD (512px)',
+    label: 'Chuẩn HD (512px - Sắc nét & Nhanh)',
+    shortLabel: '512px',
     desc: 'Độ phân giải HD 512x512 cân bằng hoàn hảo giữa độ nét và tốc độ gửi',
   },
   {
     size: 320,
-    label: 'Chuẩn gốc (320px - Nhanh gọn)',
-    shortLabel: 'Chuẩn (320px)',
-    desc: 'Đúng kích thước 320px chuẩn như file GIF gốc của Messenger & Zalo',
+    label: 'Siêu tốc (320px - Nhẹ & Nhanh nhất)',
+    shortLabel: '320px',
+    desc: 'Đúng kích thước 320px chuẩn như file GIF gốc của Messenger & Zalo, tải tức thì trên 4G/5G',
   },
 ];
 
@@ -74,14 +89,14 @@ export function setDefaultCopyBgMode(mode: BgMode): void {
 }
 
 export function getDefaultStickerSize(): StickerSizePreset {
-  if (typeof window === 'undefined') return 1024;
+  if (typeof window === 'undefined') return 512;
   try {
     const raw = Number(localStorage.getItem(STICKER_SIZE_STORAGE_KEY));
     if (raw === 1024 || raw === 512 || raw === 320) {
       return raw;
     }
   } catch {}
-  return 1024;
+  return 512;
 }
 
 export function setDefaultStickerSize(size: StickerSizePreset): void {
@@ -120,7 +135,7 @@ export function getConvertedStickerUrl(
 }
 
 /**
- * Xuất Sticker PNG ở độ phân giải tối đa (Ultra HD 1024px), tự động tách nền trong suốt và chèn chữ Meme (nếu có)
+ * Xuất Sticker PNG ở độ phân giải cao, tự động tách nền trong suốt và chèn chữ Meme (nếu có)
  */
 export async function renderCustomizedPngBlob(
   stickerUrl: string,
@@ -143,9 +158,13 @@ export async function renderCustomizedPngBlob(
       size,
       addWhiteStroke
     );
+    const cached = getCachedBlob(apiUrl);
+    if (cached) return cached;
     const res = await fetch(apiUrl);
     if (!res.ok) throw new Error('Không thể chuyển đổi sticker sang PNG');
-    return await res.blob();
+    const blob = await res.blob();
+    setCachedBlob(apiUrl, blob);
+    return blob;
   }
 
   const basePngUrl = getConvertedStickerUrl(
@@ -155,9 +174,13 @@ export async function renderCustomizedPngBlob(
     size,
     false
   );
-  const res = await fetch(basePngUrl);
-  if (!res.ok) throw new Error('Không thể tải ảnh sticker');
-  const blob = await res.blob();
+  let blob = getCachedBlob(basePngUrl);
+  if (!blob) {
+    const res = await fetch(basePngUrl);
+    if (!res.ok) throw new Error('Không thể tải ảnh sticker');
+    blob = await res.blob();
+    setCachedBlob(basePngUrl, blob);
+  }
   const bitmap = await createImageBitmap(blob);
 
   const canvas = document.createElement('canvas');
@@ -314,9 +337,15 @@ export async function shareStickerViaNativeSheet(
       targetSize,
       targetStroke
     );
-    const res = await fetch(gifUrl);
-    if (!res.ok) throw new Error('Không thể chuyển đổi sang GIF');
-    blob = await res.blob();
+    const cached = getCachedBlob(gifUrl);
+    if (cached) {
+      blob = cached;
+    } else {
+      const res = await fetch(gifUrl);
+      if (!res.ok) throw new Error('Không thể chuyển đổi sang GIF');
+      blob = await res.blob();
+      setCachedBlob(gifUrl, blob);
+    }
     ext = 'gif';
     mime = 'image/gif';
   } else {
@@ -477,6 +506,7 @@ export async function downloadPackZip(
   format: 'png' | 'gif' = 'gif',
   onProgress?: (current: number, total: number) => void
 ): Promise<void> {
+  const JSZip = (await import('jszip')).default;
   const zip = new JSZip();
   const folderName =
     pack.title.replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1E00-\u1EFF -]/g, '').trim() || pack.id;
